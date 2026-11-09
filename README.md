@@ -68,4 +68,4 @@ npm run leak-check
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+None yet: private repos carry no license. It becomes MIT when the owner makes it public.

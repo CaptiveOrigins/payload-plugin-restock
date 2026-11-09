@@ -18,7 +18,7 @@ Dated decisions for this repo, newest last.
 - **One supplier list.** With Kitting (or any app that already has `suppliers`), Restock adds its ordering fields to that collection instead of keeping a second list.
 - **Status changes by hand:** draft ↔ approved → ordered, and cancelled from anything not yet received. Approving and marking as ordered need `approve` access. Receiving and the cart status change only through Restock's own functions.
 - **Order numbers** are PO-0001, PO-0002 and so on per site, after the highest so far, with a unique index per site.
-- **LICENSE** is MIT, as the brief decides and as Kitting has, while the repo stays private.
+- **LICENSE:** none while the repo is private (director, 2026-11-09, following the ~/Code rule for private repos). It becomes MIT at the public step, as the brief decides.
 
 ## 2026-11-09: what the suppliers' own pages say (read by a session, not checked by the owner)
 
