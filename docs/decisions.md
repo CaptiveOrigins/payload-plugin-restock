@@ -42,3 +42,7 @@ Read from the suppliers' own pages on 2026-11-09. A session's reading, not legal
   - Its How to Order page supports ordering **by email to its orders address**. It lists the fields to include: PO number, billing and shipping addresses, the attention line, a contact name and phone, catalog number, product name, size and quantity, and the customer type.
   - **Reading:** the robots.txt asks automated agents to stay out of the cart and checkout, so treat Tier 2 as refused for Zymo. The email PO is its sanctioned route, and Restock's email draft fits it, once the supplier's ordering notes hold the billing and shipping details and contact.
 - **So, for now:** nothing is handed to the Console for either supplier. The owner may ask ULINE for written consent or a punchout account, and Zymo whether automated cart filling is acceptable. Until then, both stay on Tier 1.
+
+## 2026-11-09 (owner): Tier 2 decided
+
+Ordering stays on **copy/paste and email**. There's no cart automation for ULINE or Zymo, and nothing to ask either supplier. The Console's cart API stays in place: it's harmless, changes nothing but its own status, and is ready if this ever changes. One PDF renderer, with no separate printable HTML view (director, same day).
