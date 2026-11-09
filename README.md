@@ -2,7 +2,7 @@
 
 Restock for Payload: supplier lists, purchase orders and receiving, fed by your stock levels, with copy-ready orders for suppliers that have no API.
 
-**Status:** early, 0.1.0, not on npm. Built: suppliers, supplier items, purchase orders with their life cycle, access and site isolation, and drafting orders from stock levels (with Kitting 0.1.0 from npm, or your own needs). 20 tests pass against a real MongoDB (in memory, single-node replica set) on Payload 3.92. On 2026-11-09 the order page was opened in a local dev server of the Captive Origins platform with made-up data, and no server errors were logged. The place-this-order panel showed quick-order lines, the CSV and email buttons, and links. The receive form recorded 2 packs with a lot number from the keyboard alone, and the stock and lot appeared in Kitting. Not checked yet: a screen reader, or copying to the clipboard in a normal browser (the in-app browser used blocks it, and the button says so).
+**Status:** early. 0.1.0 is not on npm yet. 20 tests pass against a real MongoDB (in memory, single-node replica set) on Payload 3.92, with Kitting 0.1.0 from npm. They cover suppliers, supplier items and purchase orders, the order life cycle and who may move it, site isolation, drafting from stock levels, receiving into Kitting, shipments and marking them delivered, and the CSV, JSON and PDF exports. On 2026-11-09 a session also checked it in a browser, on a local copy of the Captive Origins platform with made-up suppliers, using the keyboard. It checked the place-this-order panel, receiving with a lot number, the Arrived list and confirming a delivery. No errors were logged. Not checked yet: a screen reader, copying to the clipboard in a normal browser, a real supplier order, and use by anyone outside these tests. Kitting's "Today" line, which shows arrivals, needs Kitting 0.2, which isn't on npm yet.
 
 Restock never buys anything and never stores passwords or card numbers. It drafts; a person checks, approves and places the order.
 
@@ -81,4 +81,4 @@ npm run leak-check
 
 ## License
 
-None yet: private repos carry no license. It becomes MIT when the owner makes it public.
+MIT. See [LICENSE](LICENSE).

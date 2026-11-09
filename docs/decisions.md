@@ -46,3 +46,12 @@ Read from the suppliers' own pages on 2026-11-09. A session's reading, not legal
 ## 2026-11-09 (owner): Tier 2 decided
 
 Ordering stays on **copy/paste and email**. There's no cart automation for ULINE or Zymo, and nothing to ask either supplier. The Console's cart API stays in place: it's harmless, changes nothing but its own status, and is ready if this ever changes. One PDF renderer, with no separate printable HTML view (director, same day).
+
+## 2026-11-09 (director): MIT, ready for the public step
+
+Restock is a general Payload plugin, so it's licensed MIT like the others (`~/Code/CLAUDE.md`), `Copyright (c) 2026 Captive Origins`. This replaces the "no license while private" entry above. The repo is still private: making it public, the first npm publish and npm trust are the owner's steps.
+
+- `LICENSE` is back, `package.json` says `"license": "MIT"`, and the npm package includes `LICENSE`.
+- Added the standard `release.yml` (stage on npm by trusted publishing; the owner approves with 2FA) and `RELEASING.md`, copied from Kitting.
+- Kitting is an optional peer from `>=0.1.0`, not `>=0.2.0`. The tests run against Kitting 0.1.0 from npm, and drafting falls back to its below-level list when `restockNeeds` (0.2) isn't there. Kitting 0.2 adds `restockNeeds` and the arrivals on its Today line.
+- The first-public-push audit is in `docs/first-public-push-audit.md`.

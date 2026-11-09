@@ -18,7 +18,7 @@
     "inventory",
     "multi-tenant"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CaptiveOrigins/payload-plugin-restock.git"
@@ -38,7 +38,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=22"
@@ -52,7 +53,7 @@
     "prepublishOnly": "npm run typecheck && npm test"
   },
   "peerDependencies": {
-    "@captiveorigins/payload-plugin-kitting": ">=0.2.0",
+    "@captiveorigins/payload-plugin-kitting": ">=0.1.0",
     "@payloadcms/next": "^3.80.0",
     "payload": "^3.80.0",
     "react": ">=19"
