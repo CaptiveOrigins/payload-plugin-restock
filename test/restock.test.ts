@@ -200,7 +200,7 @@ describe('ways to place an order', () => {
     expect(out.email.body).toContain('- 3 × H-101 Box, "small", made up (bundle of 25) at $20.00')
     expect(out.email.body).toContain('Estimated total: $60.00 (some prices to confirm)')
     expect(out.email.body).toContain('Account EX-0000 (made up).')
-    expect(out.email.mailto).toMatch(/^mailto:orders%40supplies\.example\.com\?subject=Purchase%20order%20PO-/)
+    expect(out.email.mailto).toMatch(/^mailto:orders%40example\.com\?subject=Purchase%20order%20PO-/)
     expect(out.lines.map((l) => l.url)).toEqual(['https://supplies.example.com/H-101', null])
     // With a space separator and no limit.
     await update('suppliers', supplier.id, { quickOrderSeparator: 'space', quickOrderMaxLines: null })
