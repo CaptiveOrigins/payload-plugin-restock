@@ -51,6 +51,11 @@ export async function receiveOrder(payload: Payload, orderID: ID, lines: Receive
       if (kitting && supply !== null) {
         const s = (await payload.findByID({ collection: kitting.items as CollectionSlug, id: supply, ...sys, joins: false, disableErrors: true, req })) as Doc | null
         if (!s) throw new RestockError('supply', `${item.sku} is linked to a supply that no longer exists.`)
+        // Lot-tracked supplies (reagents): a person gives the lot and use-by; Restock never invents them.
+        if (s.trackLots) {
+          if (!String(r.lotNumber ?? '').trim()) throw new RestockError('lotRequired', `${item.sku}: give the lot number printed on what arrived.`)
+          if (!r.expiresOn && !(num(s.shelfLifeDays) !== null)) throw new RestockError('expiryRequired', `${item.sku}: give the use-by date printed on what arrived.`)
+        }
         const quantity = round(r.packs * ((num(item.packSize) ?? 1) || 1))
         // Through Kitting's own movements: its access check (for a signed-in person), lots and alerts apply.
         await payload.create({
@@ -89,5 +94,39 @@ export async function receiveOrder(payload: Payload, orderID: ID, lines: Receive
       }),
     )
     return result
+  })
+}
+
+/** Does this order have lines whose supply tracks lots (so a person must give lot and use-by)? */
+export async function linesNeedingLots(payload: Payload, orderID: ID, req: Req = {}): Promise<number[]> {
+  const o = restockOf(payload)
+  const kitting = o.kitting ? (payload.config.custom?.kitting as { items: string } | undefined) : undefined
+  if (!kitting) return []
+  const order = (await payload.findByID({ collection: o.orders as CollectionSlug, id: orderID, ...sys, joins: false, disableErrors: true, req })) as Doc | null
+  const out: number[] = []
+  for (const [i, l] of (((order?.lines ?? []) as Doc[]).entries())) {
+    const item = (await payload.findByID({ collection: o.items as CollectionSlug, id: idOf(l.item)!, ...sys, joins: false, disableErrors: true, req })) as Doc | null
+    const supply = item && idOf(item.kittingItem) !== null ? ((await payload.findByID({ collection: kitting.items as CollectionSlug, id: idOf(item.kittingItem)!, ...sys, joins: false, disableErrors: true, req })) as Doc | null) : null
+    if (supply?.trackLots) out.push(i)
+  }
+  return out
+}
+
+/**
+ * "Yes, I received this package": everything still to come, in one go, recorded as this person's
+ * receipt. Refused when any line needs a lot and use-by: those go through the receive form.
+ */
+export async function receiveInFull(payload: Payload, orderID: ID, options: { req?: Req; note?: string } = {}): Promise<ReceiveResult> {
+  const o = restockOf(payload)
+  return transaction(payload, options.req, async (req) => {
+    if ((await linesNeedingLots(payload, orderID, req)).length) throw new RestockError('lotsNeeded', 'Some items need their lot number and use-by date. Use the receive form.')
+    const order = (await payload.findByID({ collection: o.orders as CollectionSlug, id: orderID, ...sys, joins: false, disableErrors: true, req })) as Doc | null
+    if (!order) throw new RestockError('notFound', 'That order doesn’t exist.', 404)
+    const lines = ((order.lines ?? []) as Doc[]).flatMap((l, i) => {
+      const left = (num(l.packs) ?? 0) - (num(l.receivedPacks) ?? 0)
+      return left > 0 ? [{ line: i, packs: left }] : []
+    })
+    if (!lines.length) throw new RestockError('nothingLeft', `Everything on ${order.number} has already been received.`)
+    return receiveOrder(payload, orderID, lines, { req, note: options.note ?? 'Received in full' })
   })
 }

@@ -4,7 +4,8 @@ import { ordersForCart, recordCart } from './console.js'
 import { purchaseOrderCSV, purchaseOrderDocument } from './document.js'
 import { draftOrders } from './draft.js'
 import { purchaseOrderPDF } from './pdf.js'
-import { receiveOrder, type ReceiveLine } from './receive.js'
+import { receiveInFull, receiveOrder, type ReceiveLine } from './receive.js'
+import { markDelivered } from './tracking.js'
 import type { CartStatus, ID } from './types.js'
 import { allows, RestockError, restockOf } from './util.js'
 
@@ -62,6 +63,13 @@ export const restockEndpoints: Endpoint[] = [
       if (order === undefined) return json({ message: 'Say which order.' }, 400)
       if (!(await allows(req, o.manage, o.orders, order))) return json({ message: 'You can’t receive this order.' }, 403)
       const lines = (Array.isArray(body.lines) ? body.lines : []) as ReceiveLine[]
+      const note = typeof body.note === 'string' ? body.note : undefined
+      if (body.all === true)
+        try {
+          return json(await receiveInFull(req.payload, order, { req: { user: req.user, payload: req.payload } as PayloadRequest, note }))
+        } catch (error) {
+          return fail(req, error)
+        }
       try {
         return json(await receiveOrder(req.payload, order, lines, { req: { user: req.user, payload: req.payload } as PayloadRequest, note: typeof body.note === 'string' ? body.note : undefined }))
       } catch (error) {
@@ -128,6 +136,22 @@ export const restockEndpoints: Endpoint[] = [
       } catch (error) {
         return fail(req, error)
       }
+    },
+  },
+  {
+    // Mark a shipment delivered by hand (no tracking service). Never adds stock.
+    path: '/restock/delivered',
+    method: 'post',
+    handler: async (req) => {
+      const o = restockOf(req.payload)
+      if (!req.user || req.user.collection !== o.userSlug) return json({ message: 'Sign in first.' }, 401)
+      const body = await bodyOf(req)
+      const order = body.order as ID | undefined
+      if (order === undefined || typeof body.trackingNumber !== 'string') return json({ message: 'Say which order and tracking number.' }, 400)
+      if (!(await allows(req, o.manage, o.orders, order))) return json({ message: 'You can’t update this order.' }, 403)
+      const doc = (await req.payload.findByID({ collection: o.orders as never, id: order, depth: 0, overrideAccess: true, disableErrors: true })) as Record<string, any> | null // eslint-disable-line @typescript-eslint/no-explicit-any
+      const scope = o.scopeField && doc ? (doc[o.scopeField] as ID) : null
+      return json(await markDelivered(req.payload, { trackingNumber: body.trackingNumber, scope }))
     },
   },
 ]

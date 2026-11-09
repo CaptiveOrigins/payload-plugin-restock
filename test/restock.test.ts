@@ -3,7 +3,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { buildConfig, getPayload, type Access, type CollectionConfig, type Field, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { draftOrders, orderOutputs, restockPlugin } from '../src/index.js'
+import { awaitingConfirmation, draftOrders, orderOutputs, restockPlugin } from '../src/index.js'
 
 // Made-up suppliers, items, sites and people throughout. No real account numbers or prices.
 type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -322,5 +322,32 @@ describe('exports: CSV, JSON and PDF', () => {
     const text = (await page.getTextContent()).items.map((i) => ('str' in i ? i.str : '')).join(' ')
     for (const expected of ['Example Organization', `Purchase order ${po.number}`, 'Example Packaging Co', 'Attn: Receiving', 'S-0100', '$73.60', 'some prices to be confirmed', 'Approved by buyer-a@example.com', 'Net 30.', 'page 1 of 1'])
       expect(text).toContain(expected)
+  })
+})
+
+describe('arrivals: access', () => {
+  it('shows arrivals and the confirm actions only to people who may receive', async () => {
+    const { supplier, mailer } = await supplierWithItems(siteA)
+    const po = await create('purchase-orders', { tenant: siteA.id, supplier: supplier.id, lines: [{ item: mailer.id, packs: 2 }] }, as(staffA))
+    await update('purchase-orders', po.id, { status: 'approved' }, as(buyerA))
+    await update('purchase-orders', po.id, { status: 'ordered' }, as(buyerA))
+    await update('purchase-orders', po.id, { shipments: [{ carrier: 'UPS', trackingNumber: 'EX123' }] }, as(staffA))
+    const delivered = payload.config.endpoints.find((e) => e.path === '/restock/delivered')!
+    const receive = payload.config.endpoints.find((e) => e.path === '/restock/receive')!
+    const call = (e: typeof delivered, user: Doc | null, body: Doc) => e.handler({ payload, user: user && { ...user, collection: 'users' }, json: async () => body } as never) as Promise<Response>
+    expect((await call(delivered, viewerA, { order: po.id, trackingNumber: 'EX123' })).status).toBe(403)
+    expect((await call(delivered, staffB, { order: po.id, trackingNumber: 'EX123' })).status).toBe(403)
+    expect(await (await call(delivered, staffA, { order: po.id, trackingNumber: 'EX123' })).json()).toMatchObject({ status: 'delivered' })
+    expect((await get('purchase-orders', po.id)).status).toBe('ordered') // still needs a person's yes
+    const listFor = async (u: Doc) => (await awaitingConfirmation(payload, { user: { ...u, collection: 'users' } })).map((a) => a.number)
+    expect(await listFor(staffA)).toContain(po.number)
+    expect(await listFor(viewerA)).not.toContain(po.number)
+    expect(await listFor(staffB)).not.toContain(po.number)
+    expect((await call(receive, viewerA, { order: po.id, all: true })).status).toBe(403)
+    const ok = await call(receive, staffA, { order: po.id, all: true })
+    expect([ok.status, (await ok.json()).status]).toEqual([200, 'received'])
+    const after = await get('purchase-orders', po.id)
+    expect(after.history.at(-1)).toMatchObject({ to: 'received', note: 'Received 2 × S-0001. Received in full' })
+    expect(String(after.history.at(-1).by)).toBe(String(staffA.id))
   })
 })

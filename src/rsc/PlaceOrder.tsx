@@ -2,12 +2,13 @@ import type { Payload } from 'payload'
 import React from 'react'
 
 import { CopyBox } from '../client/CopyBox.js'
+import { ConfirmArrival } from '../client/ConfirmArrival.js'
 import { ReceiveForm } from '../client/ReceiveForm.js'
-import { restockOf, idOf, num } from '../util.js'
+import { allows, idOf, num, restockOf } from '../util.js'
 import { orderOutputs } from '../outputs.js'
 
 /** On a purchase order: everything a person needs to place it themselves. Restock never places it. */
-export async function PlaceOrder(props: { id?: string | number; payload: Payload }) {
+export async function PlaceOrder(props: { id?: string | number; payload: Payload; user?: unknown }) {
   if (props.id === undefined || props.id === null) return null
   const out = await orderOutputs(props.payload, props.id).catch(() => null)
   if (!out) return null
@@ -16,6 +17,9 @@ export async function PlaceOrder(props: { id?: string | number; payload: Payload
   const o = restockOf(props.payload)
   const order = (await props.payload.findByID({ collection: o.orders as never, id: props.id, depth: 0, overrideAccess: true, disableErrors: true })) as Record<string, any> | null // eslint-disable-line @typescript-eslint/no-explicit-any
   if (order && ['ordered', 'partly-received'].includes(order.status)) {
+    // Only people who may receive see the receive and confirm controls.
+    const canReceive = props.user ? await allows({ user: props.user, payload: props.payload } as never, o.manage, o.orders, order.id) : false
+    if (!canReceive) return null
     const kitting = o.kitting ? (props.payload.config.custom?.kitting as { items: string } | undefined) : undefined
     const lines = []
     for (const [index, l] of ((order.lines ?? []) as Record<string, any>[]).entries()) { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -24,14 +28,19 @@ export async function PlaceOrder(props: { id?: string | number; payload: Payload
       const item = (await props.payload.findByID({ collection: o.items as never, id: idOf(l.item)!, depth: 0, overrideAccess: true, disableErrors: true })) as Record<string, any> | null // eslint-disable-line @typescript-eslint/no-explicit-any
       if (!item) continue
       const supply = kitting && idOf(item.kittingItem) !== null ? ((await props.payload.findByID({ collection: kitting.items as never, id: idOf(item.kittingItem)!, depth: 0, overrideAccess: true, disableErrors: true })) as Record<string, any> | null) : null // eslint-disable-line @typescript-eslint/no-explicit-any
-      lines.push({ index, sku: String(item.sku), name: String(item.name ?? ''), left, packName: String(item.packName || 'each'), lots: Boolean(supply?.trackLots) })
+      lines.push({ index, sku: String(item.sku), name: String(item.name ?? ''), left, packName: String(item.packName || 'each'), lots: Boolean(supply?.trackLots), expiryOptional: typeof supply?.shelfLifeDays === 'number' })
     }
+    const arrived = ((order.shipments ?? []) as Record<string, any>[]).some((sh) => sh.status === 'delivered') // eslint-disable-line @typescript-eslint/no-explicit-any
     return (
-      <section aria-labelledby="restock-receive" style={box}>
+      <section aria-labelledby="restock-receive" style={{ ...box, ...(arrived ? { borderColor: 'var(--theme-success-500)', borderWidth: 2 } : {}) }}>
         <h3 id="restock-receive" style={{ margin: '0 0 8px' }}>
-          Receive {out.number}
+          {arrived ? `Arrived, please confirm: ${out.number}` : `Receive ${out.number}`}
         </h3>
-        <ReceiveForm order={String(props.id)} lines={lines} apiRoute={props.payload.config.routes.api} />
+        {arrived ? (
+          <ConfirmArrival order={String(props.id)} number={out.number} lines={lines} apiRoute={props.payload.config.routes.api} />
+        ) : (
+          <ReceiveForm order={String(props.id)} lines={lines} apiRoute={props.payload.config.routes.api} />
+        )}
       </section>
     )
   }

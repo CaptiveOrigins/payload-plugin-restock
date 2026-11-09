@@ -4,12 +4,14 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { buildConfig, getPayload, type CollectionConfig, type Field, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { draftOrders, receiveOrder, restockPlugin } from '../src/index.js'
+import { awaitingConfirmation, draftOrders, markDelivered, receiveInFull, receiveOrder, restockPlugin } from '../src/index.js'
 
 // Restock with Kitting (from npm), on its own database. Made-up sites, suppliers and supplies.
 type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 
 let payload: Payload
+const mail: { to: string[]; subject: string }[] = []
+const tracked: string[] = []
 let mongo: MongoMemoryReplSet
 const tenantField: Field = { name: 'tenant', type: 'relationship', relationTo: 'tenants', required: true }
 const withTenant = (c: CollectionConfig): CollectionConfig => ({ ...c, fields: [tenantField, ...c.fields] })
@@ -32,7 +34,16 @@ beforeAll(async () => {
           scopeField: 'tenant',
           overrides: { items: withTenant, suppliers: withTenant, movements: withTenant, recipes: withTenant, lots: withTenant, units: withTenant, requests: withTenant, boxes: withTenant, postage: withTenant },
         }),
-        restockPlugin({ overrides: { items: withTenant, orders: withTenant } }),
+        restockPlugin({
+          overrides: { items: withTenant, orders: withTenant, settings: withTenant },
+          tracking: {
+            track: async ({ shipment }) => {
+              tracked.push(shipment.trackingNumber)
+              return { trackerId: `trk_${shipment.trackingNumber}` }
+            },
+          },
+          notify: { recipients: ['receiving@example.com'], sendEmail: async ({ to, subject }) => void mail.push({ to, subject }) },
+        }),
       ],
     }),
   })
@@ -114,12 +125,77 @@ describe('receiving into Kitting', () => {
 
     await expect(receiveOrder(payload, po.id, [{ line: 0, packs: 2 }])).rejects.toThrow(/1 pack still to come, not 2/)
     expect((await get('supply-items', tube.id)).onHand).toBe(210) // nothing written by the refusal
-    const done = await receiveOrder(payload, po.id, [{ line: 0, packs: 1 }, { item: gloveItem.id, packs: 1 }])
+    const done = await receiveOrder(payload, po.id, [{ line: 0, packs: 1, lotNumber: 'L-NEW', expiresOn: '2099-01-01T00:00:00.000Z' }, { item: gloveItem.id, packs: 1 }])
     expect(done.status).toBe('received')
     expect((await get('supply-items', glove.id)).onHand).toBe(50)
     const order = await get('purchase-orders', po.id)
     expect(order.lines.map((l: Doc) => l.receivedPacks)).toEqual([3, 1])
     expect(order.history.map((h: Doc) => h.to)).toEqual(['draft', 'approved', 'ordered', 'partly-received', 'received'])
     await expect(receiveOrder(payload, po.id, [{ line: 1, packs: 1 }])).rejects.toThrow(/Only ordered orders/)
+  })
+})
+
+describe('arrived, please confirm', () => {
+  async function placed() {
+    const lab = await create('suppliers', { tenant: site.id, name: `Arrival supplier ${Math.random().toString(36).slice(2, 6)}` })
+    const box = await create('supply-items', { tenant: site.id, name: 'Arrival box', unit: 'each', openingStock: 0 })
+    const reagent = await create('supply-items', { tenant: site.id, name: 'Arrival reagent', unit: 'ml', openingStock: 0, trackLots: true })
+    const boxItem = await create('supplier-items', { tenant: site.id, supplier: lab.id, kittingItem: box.id, sku: 'B-10', name: 'Boxes, made up', packSize: 10, price: 5 })
+    const reagentItem = await create('supplier-items', { tenant: site.id, supplier: lab.id, kittingItem: reagent.id, sku: 'R-50', name: 'Reagent, made up', packName: 'bottle of 50 ml', packSize: 50, price: 40 })
+    const make = async (lines: Doc[]) => {
+      const po = await create('purchase-orders', { tenant: site.id, supplier: lab.id, lines })
+      await payload.update({ collection: 'purchase-orders' as never, id: po.id, data: { status: 'approved' } as never })
+      return (await payload.update({ collection: 'purchase-orders' as never, id: po.id, data: { status: 'ordered' } as never, depth: 0 })) as Doc
+    }
+    return { lab, box, reagent, boxItem, reagentItem, make }
+  }
+  const tn = () => `1Z${Math.random().toString(36).slice(2, 10).toUpperCase()}`
+
+  it('tracks shipments, and a delivered event lists the order but never adds stock, once', async () => {
+    const { box, boxItem, make } = await placed()
+    const po = await make([{ item: boxItem.id, packs: 3 }])
+    const number = tn()
+    // Not before it's ordered, and a tracker id can't be typed in.
+    const draft = await create('purchase-orders', { tenant: site.id, supplier: po.supplier, lines: [{ item: boxItem.id, packs: 1 }] })
+    await expect(payload.update({ collection: 'purchase-orders' as never, id: draft.id, data: { shipments: [{ carrier: 'UPS', trackingNumber: number }] } as never, user: { id: 'x', collection: 'users' } as never })).rejects.toThrow(/once the order is placed/)
+    await payload.update({ collection: 'purchase-orders' as never, id: po.id, data: { shipments: [{ carrier: 'UPS', trackingNumber: number, trackerId: 'typed' }] } as never, user: { id: 'x', collection: 'users' } as never })
+    const tracking = await get('purchase-orders', po.id)
+    expect(tracked).toContain(number)
+    expect(tracking.shipments[0]).toMatchObject({ trackerId: `trk_${number}`, status: 'in-transit' })
+
+    expect(await markDelivered(payload, { trackerId: `trk_${number}`, scope: other.id })).toMatchObject({ status: 'wrong-site' })
+    expect(await markDelivered(payload, { trackerId: 'trk_unknown' })).toMatchObject({ status: 'not-found' })
+    expect(await markDelivered(payload, { trackerId: `trk_${number}`, scope: site.id })).toMatchObject({ status: 'delivered', number: po.number })
+    expect(await markDelivered(payload, { trackerId: `trk_${number}`, scope: site.id })).toMatchObject({ status: 'already' })
+    expect((await get('supply-items', box.id)).onHand).toBe(0) // a delivery never adds stock
+    const after = await get('purchase-orders', po.id)
+    expect(after).toMatchObject({ status: 'ordered', estimatedTotal: 15 })
+    expect(after.lines.map((l: Doc) => [l.packs, l.receivedPacks])).toEqual([[3, 0]])
+    expect(after.shipments[0].status).toBe('delivered')
+    expect(mail.filter((m) => m.subject === `Arrived, please confirm: ${po.number}`)).toHaveLength(1) // once
+    expect((await awaitingConfirmation(payload, { scope: site.id })).map((a) => a.number)).toContain(po.number)
+    expect((await awaitingConfirmation(payload, { scope: other.id })).map((a) => a.number)).not.toContain(po.number)
+
+    // "Received in full": exactly what's still to come, once.
+    const r = await receiveInFull(payload, po.id)
+    expect(r).toMatchObject({ status: 'received', received: [{ sku: 'B-10', packs: 3, stock: { quantity: 30 } }] })
+    expect((await get('supply-items', box.id)).onHand).toBe(30)
+    await expect(receiveInFull(payload, po.id)).rejects.toThrow(/already been received/)
+    expect((await awaitingConfirmation(payload, { scope: site.id })).map((a) => a.number)).not.toContain(po.number)
+  })
+
+  it('asks for lot and use-by on lot-tracked supplies, and records missing items as a partial receipt', async () => {
+    const { box, reagent, boxItem, reagentItem, make } = await placed()
+    const po = await make([{ item: boxItem.id, packs: 2 }, { item: reagentItem.id, packs: 2 }])
+    await expect(receiveInFull(payload, po.id)).rejects.toThrow(/lot number and use-by date/)
+    await expect(receiveOrder(payload, po.id, [{ line: 1, packs: 2 }])).rejects.toThrow(/lot number printed/)
+    await expect(receiveOrder(payload, po.id, [{ line: 1, packs: 2, lotNumber: 'RX-1' }])).rejects.toThrow(/use-by date/)
+    expect((await get('supply-items', reagent.id)).onHand).toBe(0)
+    // One bottle arrived broken: partial, with a note.
+    const r = await receiveOrder(payload, po.id, [{ line: 0, packs: 2 }, { line: 1, packs: 1, lotNumber: 'RX-1', expiresOn: '2099-03-01T00:00:00.000Z' }], { note: 'One bottle broken in transit' })
+    expect(r.status).toBe('partly-received')
+    expect([(await get('supply-items', box.id)).onHand, (await get('supply-items', reagent.id)).onHand]).toEqual([20, 50])
+    const order = await get('purchase-orders', po.id)
+    expect(order.history.at(-1).note).toBe('Received 2 × B-10, 1 × R-50. One bottle broken in transit')
   })
 })

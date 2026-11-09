@@ -1,7 +1,7 @@
-import type { CollectionBeforeChangeHook, CollectionBeforeDeleteHook, CollectionConfig, CollectionSlug, Field, PayloadRequest } from 'payload'
+import type { CollectionAfterChangeHook, CollectionBeforeChangeHook, CollectionBeforeDeleteHook, CollectionConfig, CollectionSlug, Field, PayloadRequest } from 'payload'
 
 import type { ResolvedRestock } from './types.js'
-import { allows, idOf, INTERNAL, num, RestockError, round, sameID, sys, userID, type Doc } from './util.js'
+import { allows, asInternal, idOf, INTERNAL, num, RestockError, round, sameID, sys, userID, type Doc } from './util.js'
 
 const ORDER_METHODS = [
   { label: 'Quick-order page (paste model numbers)', value: 'quick-order' },
@@ -208,6 +208,7 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
       if (operation === 'update' && from !== 'draft') data.lines = originalDoc?.lines
       for (const f of ['received', 'cartStatus', 'cartNote', 'cartAt', 'history', 'number']) if (operation === 'update') data[f] = originalDoc?.[f]
     }
+    if (!internal) applyShipmentRules(o, data, originalDoc, to, req)
     data.status = to
     if (operation === 'create') {
       data.history = []
@@ -223,6 +224,8 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
       }
     }
     delete data.statusNote
+    for (const note of (data._shipmentNotes ?? []) as string[]) data.history = [...((data.history ?? originalDoc?.history ?? []) as Doc[]), { at: new Date().toISOString(), by: userID(o, req), from: to, to, note }]
+    delete data._shipmentNotes
 
     // Lines: each one this supplier's item, on this site; prices snapshot from the item when empty.
     const lines = (data.lines ?? []) as Doc[]
@@ -245,6 +248,23 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
     data.totalComplete = complete
     return data
   }
+  const afterChange: CollectionAfterChangeHook = async ({ doc, req }) => {
+    if (!o.track || req.context?.[INTERNAL]) return doc
+    const untracked = ((doc.shipments ?? []) as Doc[]).filter((sh) => !sh.trackerId && !sh.trackNote && sh.status !== 'delivered' && sh.trackingNumber)
+    if (!untracked.length) return doc
+    const shipments = [...((doc.shipments ?? []) as Doc[])]
+    for (const sh of untracked) {
+      const i = shipments.indexOf(sh)
+      try {
+        const r = await o.track({ payload: req.payload, shipment: { carrier: String(sh.carrier ?? ''), trackingNumber: String(sh.trackingNumber) }, order: { id: doc.id, number: String(doc.number), scope: o.scopeField ? idOf(doc[o.scopeField]) : null } })
+        shipments[i] = { ...sh, trackerId: r && r.trackerId ? String(r.trackerId) : null, trackNote: r && r.trackerId ? null : 'Tracking didn’t give an id; mark it delivered by hand.' }
+      } catch (error) {
+        shipments[i] = { ...sh, trackNote: `Couldn’t start tracking: ${String((error as Error)?.message ?? error).slice(0, 160)}. Mark it delivered by hand.` }
+      }
+    }
+    await asInternal(req, () => req.payload.update({ collection: o.orders as CollectionSlug, id: doc.id, data: { shipments } as never, ...sys, req }))
+    return doc
+  }
   const beforeDelete: CollectionBeforeDeleteHook = async ({ id, req }) => {
     if (req.context?.[INTERNAL]) return
     const doc = (await req.payload.findByID({ collection: o.orders as CollectionSlug, id, ...sys, joins: false, disableErrors: true, req })) as Doc | null
@@ -261,7 +281,7 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
     },
     defaultSort: '-updatedAt',
     access: { read: o.read, create: o.manage, update: o.manage, delete: o.manage },
-    hooks: { beforeChange: [beforeChange], beforeDelete: [beforeDelete] },
+    hooks: { beforeChange: [beforeChange], afterChange: [afterChange], beforeDelete: [beforeDelete] },
     indexes: [{ fields: o.scopeField ? ['number', o.scopeField] : ['number'], unique: true }],
     fields: [
       { name: 'number', type: 'text', label: 'Order number', admin: { readOnly: true, position: 'sidebar' } },
@@ -313,6 +333,41 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
         ],
       },
       { name: 'orderReference', type: 'text', label: 'Supplier’s order number', admin: { description: 'From their confirmation, once ordered.' } },
+      {
+        name: 'shipments',
+        type: 'array',
+        label: 'Shipments',
+        labels: { singular: 'Shipment', plural: 'Shipments' },
+        admin: {
+          condition: (d) => ['ordered', 'partly-received', 'received'].includes(d?.status),
+          description: 'Tracking numbers, once the supplier sends them. A supplier may split an order. A delivered parcel never adds stock: someone confirms what arrived.',
+        },
+        fields: [
+          {
+            type: 'row',
+            fields: [
+              { name: 'carrier', type: 'text', label: 'Carrier', admin: { width: '30%', description: 'UPS, FedEx, USPS…' } },
+              { name: 'trackingNumber', type: 'text', required: true, label: 'Tracking number', admin: { width: '40%' } },
+              {
+                name: 'status',
+                type: 'select',
+                defaultValue: 'in-transit',
+                label: 'Status',
+                options: [
+                  { label: 'On its way', value: 'in-transit' },
+                  { label: 'Delivered', value: 'delivered' },
+                  { label: 'Problem', value: 'problem' },
+                ],
+                admin: { width: '30%' },
+              },
+            ],
+          },
+          { name: 'deliveredAt', type: 'date', label: 'Delivered', admin: { readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
+          { name: 'trackerId', type: 'text', label: 'Tracker', admin: { readOnly: true, description: 'Set by your tracking service.' } },
+          { name: 'trackNote', type: 'text', label: 'Tracking note', admin: { readOnly: true } },
+          { name: 'notifiedAt', type: 'date', admin: { hidden: true } },
+        ],
+      },
       { name: 'orderedAt', type: 'date', label: 'Ordered', admin: { readOnly: true, position: 'sidebar', date: { pickerAppearance: 'dayAndTime' } } },
       { name: 'orderedBy', type: 'relationship', relationTo: o.userSlug as CollectionSlug, label: 'Ordered by', admin: { readOnly: true, position: 'sidebar' } },
       {
@@ -438,4 +493,35 @@ export function settingsCollection(o: ResolvedRestock): CollectionConfig {
       { name: 'terms', type: 'textarea', label: 'Printed at the foot of every order', admin: { description: 'For example payment terms or delivery hours.' } },
     ],
   }
+}
+
+/**
+ * Shipments by hand: only on an ordered order, never a tracker id or delivered time typed in, and a
+ * shipment marked delivered gets its time and a history note. Stock never changes here.
+ */
+function applyShipmentRules(o: ResolvedRestock, data: Doc, originalDoc: Doc | undefined, to: string, req: PayloadRequest) {
+  if (data.shipments === undefined) return
+  const shipments = (data.shipments ?? []) as Doc[]
+  if (shipments.length && !['ordered', 'partly-received', 'received'].includes(to)) throw new RestockError('shipments', 'Add tracking numbers once the order is placed.')
+  const before = new Map(((originalDoc?.shipments ?? []) as Doc[]).map((sh) => [String(sh.id), sh]))
+  const notes: string[] = []
+  for (const sh of shipments) {
+    const prev = sh.id ? before.get(String(sh.id)) : undefined
+    sh.trackerId = prev?.trackerId ?? null
+    sh.trackNote = prev?.trackNote ?? null
+    sh.notifiedAt = prev?.notifiedAt ?? null
+    sh.deliveredAt = prev?.deliveredAt ?? null
+    if (prev && String(prev.trackingNumber) !== String(sh.trackingNumber)) {
+      // A corrected number starts tracking afresh.
+      sh.trackerId = null
+      sh.trackNote = null
+    }
+    if (sh.status === 'delivered' && prev?.status !== 'delivered') {
+      sh.deliveredAt = new Date().toISOString()
+      notes.push(`Shipment ${sh.trackingNumber} marked delivered by hand; waiting for someone to confirm what arrived`)
+    }
+  }
+  if (notes.length) data._shipmentNotes = notes
+  void o
+  void req
 }

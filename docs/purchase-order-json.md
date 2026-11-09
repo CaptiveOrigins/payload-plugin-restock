@@ -26,6 +26,7 @@
 | `lines[].productUrl` | string or null | http or https only |
 | `totals.subtotal` | number | Sum of the known line totals |
 | `totals.complete` | boolean | False when any line has no price |
+| `shipments[]` | `{ carrier, trackingNumber, status, deliveredAt }` | Parcels the supplier sent. `status` is `in-transit`, `delivered` or `problem`. Added 2026-11-09, within version 1 |
 | `approvedBy`, `orderedBy` | string or null | The person's name, or email when there's no name |
 | `supplierOrderReference` | string or null | The supplier's order number, once ordered |
 | `notes` | string or null | The order's notes |

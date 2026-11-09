@@ -38,6 +38,8 @@ export type PurchaseOrderDocument = {
     productUrl: string | null
   }[]
   totals: { subtotal: number; complete: boolean }
+  /** Parcels the supplier sent, with their tracking numbers. Empty until the order is placed. */
+  shipments: { carrier: string | null; trackingNumber: string; status: 'in-transit' | 'delivered' | 'problem'; deliveredAt: string | null }[]
   approvedBy: string | null
   orderedBy: string | null
   supplierOrderReference: string | null
@@ -111,6 +113,7 @@ export async function purchaseOrderDocument(payload: Payload, orderID: ID, optio
     supplier: { name: String(supplier?.name ?? ''), email: str(supplier?.email), phone: str(supplier?.phone), website: http(supplier?.website), orderUrl: http(supplier?.orderUrl) },
     lines,
     totals: { subtotal: round(lines.reduce((t, l) => t + (l.lineTotal ?? 0), 0), 2), complete: lines.every((l) => l.unitPrice !== null) },
+    shipments: ((order.shipments ?? []) as Doc[]).map((sh) => ({ carrier: str(sh.carrier), trackingNumber: String(sh.trackingNumber ?? ''), status: (sh.status ?? 'in-transit') as 'in-transit', deliveredAt: str(sh.deliveredAt) })),
     approvedBy: approval ? await personName(payload, o.userSlug, approval.by, req) : null,
     orderedBy: await personName(payload, o.userSlug, order.orderedBy, req),
     supplierOrderReference: str(order.orderReference),

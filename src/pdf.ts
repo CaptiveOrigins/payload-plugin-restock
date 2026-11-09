@@ -99,6 +99,10 @@ export async function purchaseOrderPDF(d: PurchaseOrderDocument): Promise<Buffer
   doc.moveDown(0.6)
   para(`Total: ${money(d.totals.subtotal, d.currency)}${d.totals.complete ? '' : ' (some prices to be confirmed)'}`, { bold: true, size: 11, align: 'right' })
   doc.moveDown(0.6)
+  if (d.shipments.length)
+    para(
+      `Shipments: ${d.shipments.map((sh) => `${sh.carrier ? `${sh.carrier} ` : ''}${sh.trackingNumber} (${sh.status === 'delivered' ? `delivered${sh.deliveredAt ? ` ${longDate(sh.deliveredAt)}` : ''}` : sh.status === 'problem' ? 'problem' : 'on its way'})`).join('; ')}`,
+    )
   if (d.notes) para(`Notes: ${d.notes}`)
   if (d.buyer.contact.name || d.buyer.contact.email || d.buyer.contact.phone)
     para(`Contact: ${[d.buyer.contact.name, d.buyer.contact.email, d.buyer.contact.phone].filter(Boolean).join(', ')}`)

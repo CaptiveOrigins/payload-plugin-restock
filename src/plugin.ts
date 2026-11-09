@@ -2,6 +2,7 @@ import type { Access, CollectionConfig, Config, Plugin } from 'payload'
 
 import { itemsCollection, orderingFields, ordersCollection, settingsCollection, suppliersCollection } from './collections.js'
 import { restockEndpoints } from './endpoints.js'
+import { awaitingConfirmation, type Arrived } from './tracking.js'
 import type { ResolvedRestock, RestockPluginOptions } from './types.js'
 
 /**
@@ -35,6 +36,10 @@ export const restockPlugin =
       needs: options.needs,
       adminGroup: options.adminGroup ?? (useKitting ? (kitting?.adminGroup ?? 'Restock') : 'Restock'),
       sharedSuppliers: Boolean(existing),
+      track: options.tracking?.track,
+      notify: options.notify,
+      arrived: async ({ payload, user, scope }) =>
+        (await awaitingConfirmation(payload, { user, scope })).map((x: Arrived) => ({ id: x.id, number: x.number, supplier: x.supplier, deliveredAt: x.deliveredAt })),
     }
     const ov = options.overrides ?? {}
     const apply = (c: CollectionConfig, f?: (c: CollectionConfig) => CollectionConfig) => (f ? f(c) : c)
@@ -50,5 +55,13 @@ export const restockPlugin =
       custom: { ...config.custom, restock: o },
       collections: [...collections, ...(existing ? [] : [apply(suppliersCollection(o), ov.suppliers)]), ...added],
       endpoints: [...(config.endpoints ?? []), ...restockEndpoints],
+      admin: {
+        ...config.admin,
+        components: {
+          ...config.admin?.components,
+          afterNavLinks: [...(config.admin?.components?.afterNavLinks ?? []), '@captiveorigins/payload-plugin-restock/rsc#RestockNavLink'],
+          views: { ...config.admin?.components?.views, restock: { Component: '@captiveorigins/payload-plugin-restock/rsc#RestockView', path: '/restock', exact: true } },
+        },
+      },
     }
   }

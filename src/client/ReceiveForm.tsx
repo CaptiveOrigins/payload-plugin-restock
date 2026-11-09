@@ -2,12 +2,15 @@
 
 import React, { useId, useState } from 'react'
 
-type Line = { index: number; sku: string; name: string; left: number; packName: string; lots: boolean }
+type Line = { index: number; sku: string; name: string; left: number; packName: string; lots: boolean; expiryOptional?: boolean }
 
 /** What arrived: packs per line, with a lot number and use-by date where the supply tracks lots. */
-export function ReceiveForm({ order, lines, apiRoute }: { order: string; lines: Line[]; apiRoute: string }) {
+export function ReceiveForm({ order, lines, apiRoute, prefill = false }: { order: string; lines: Line[]; apiRoute: string; prefill?: boolean }) {
   const base = useId()
-  const [values, setValues] = useState<Record<number, { packs: string; lot: string; expires: string }>>({})
+  const [values, setValues] = useState<Record<number, { packs: string; lot: string; expires: string }>>(() =>
+    prefill ? Object.fromEntries(lines.map((l) => [l.index, { packs: String(l.left), lot: '', expires: '' }])) : {},
+  )
+  const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null)
   const set = (i: number, k: 'packs' | 'lot' | 'expires', v: string) => setValues({ ...values, [i]: { packs: '', lot: '', expires: '', ...values[i], [k]: v } })
@@ -15,7 +18,9 @@ export function ReceiveForm({ order, lines, apiRoute }: { order: string; lines: 
     const v = values[l.index]
     if (!v || v.packs.trim() === '') return []
     const packs = Number(v.packs)
-    return [{ l, packs, valid: Number.isInteger(packs) && packs > 0 && packs <= l.left, v }]
+    // Lot-tracked supplies need the lot and use-by printed on what arrived; Restock never invents them.
+    const lotsOk = !l.lots || (v.lot.trim() !== '' && (v.expires !== '' || Boolean(l.expiryOptional)))
+    return [{ l, packs, valid: Number.isInteger(packs) && packs > 0 && packs <= l.left && lotsOk, v }]
   })
   const invalid = entered.filter((e) => !e.valid)
   const save = async () => {
@@ -29,6 +34,7 @@ export function ReceiveForm({ order, lines, apiRoute }: { order: string; lines: 
         body: JSON.stringify({
           order,
           lines: entered.map((e) => ({ line: e.l.index, packs: e.packs, lotNumber: e.v.lot.trim() || null, expiresOn: e.v.expires ? new Date(`${e.v.expires}T00:00:00Z`).toISOString() : null })),
+          note: note.trim() || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -90,13 +96,37 @@ export function ReceiveForm({ order, lines, apiRoute }: { order: string; lines: 
                     </span>
                   ) : null}
                 </td>
-                <td style={{ padding: 6 }}>{l.lots ? <input aria-label={`Lot number for ${l.sku}`} value={v.lot} onChange={(e) => set(l.index, 'lot', e.target.value)} style={{ width: 120, minHeight: 34 }} /> : '—'}</td>
-                <td style={{ padding: 6 }}>{l.lots ? <input type="date" aria-label={`Use-by date for ${l.sku}`} value={v.expires} onChange={(e) => set(l.index, 'expires', e.target.value)} style={{ minHeight: 34 }} /> : '—'}</td>
+                <td style={{ padding: 6 }}>
+                  {l.lots ? (
+                    <input aria-label={`Lot number for ${l.sku} (required)`} required aria-required="true" value={v.lot} onChange={(e) => set(l.index, 'lot', e.target.value)} style={{ width: 120, minHeight: 34 }} />
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                <td style={{ padding: 6 }}>
+                  {l.lots ? (
+                    <input
+                      type="date"
+                      aria-label={`Use-by date for ${l.sku}${l.expiryOptional ? '' : ' (required)'}`}
+                      required={!l.expiryOptional}
+                      value={v.expires}
+                      onChange={(e) => set(l.index, 'expires', e.target.value)}
+                      style={{ minHeight: 34 }}
+                    />
+                  ) : (
+                    '—'
+                  )}
+                </td>
               </tr>
             )
           })}
         </tbody>
       </table>
+      {lines.some((l) => l.lots) ? <p style={{ margin: '8px 0 0', fontSize: 13 }}>Lot number and use-by come from the label on what arrived.</p> : null}
+      <label style={{ display: 'block', margin: '8px 0 4px', fontWeight: 600 }} htmlFor={`${base}-note`}>
+        Note (what was missing or damaged)
+      </label>
+      <input id={`${base}-note`} value={note} onChange={(e) => setNote(e.target.value)} style={{ width: '100%', minHeight: 34 }} />
       <button type="button" className="btn btn--style-primary btn--size-small" style={{ margin: '8px 0 0' }} disabled={busy || !entered.length || invalid.length > 0} onClick={() => void save()}>
         {busy ? 'Recording…' : 'Record what arrived'}
       </button>

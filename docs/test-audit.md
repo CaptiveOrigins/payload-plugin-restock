@@ -83,3 +83,16 @@ In a local dev server of the platform with Restock installed temporarily and mad
 - **CSV cells:** quoting and defused formula cells (pure).
 
 Checked by eye: a sample PDF, which looked right (layout, table and totals). Not checked: a screen reader on the PDF, or printing on paper. The fonts aren't embedded (Helvetica is a standard PDF font), so it isn't strict PDF/UA.
+
+## 2026-11-09, shipments and "Arrived, please confirm" (owner's request)
+
+20 tests. Added:
+- **A delivered event never changes stock.** Stock, lines and the total stay the same, and the order stays ordered.
+- **Idempotent:** the same event twice is `already`.
+- **Another site's tracker is refused** (`wrong-site`), and an unknown one is `not-found`.
+- **One email per parcel.** Shipments can't be added before the order is placed, and a tracker id can't be typed in.
+- **"Received in full"** adds exactly what's still to come, once.
+- **Lots:** a lot number, and a use-by unless the supply has a shelf life, are required where lots are tracked. Missing items go to a partial receipt with a note.
+- **Access:** marking delivered by hand, the arrivals list and one-click receipt refuse viewers and another site's staff. The receipt records who confirmed it.
+
+Not rendered in tests: the confirm panel, the Restock overview and Kitting's Today line. They need the full admin; a browser check is planned before release.

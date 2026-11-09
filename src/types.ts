@@ -43,7 +43,26 @@ export type RestockPluginOptions = {
   }
   /** Admin group for Restock's collections. Default `Restock`, or Kitting's group when Kitting is installed. */
   adminGroup?: string
+  /**
+   * Carrier tracking (optional; crossing `restock-tracking`). `track` is called when staff add a
+   * shipment to an ordered purchase order; your app then calls `markDelivered` when the carrier says it
+   * arrived. Without it, staff mark shipments delivered by hand. A delivery never adds stock.
+   */
+  tracking?: { track?: TrackShipment }
+  /** "Arrived, please confirm" emails to staff (optional), once per delivered shipment. */
+  notify?: {
+    recipients?: string[] | ((args: { payload: Payload; scope: ID | null }) => string[] | Promise<string[]>)
+    /** May email go out from here right now? Default: always. */
+    canSend?: (args: { payload: Payload }) => boolean | Promise<boolean>
+    sendEmail?: (args: { payload: Payload; to: string[]; subject: string; text: string; html: string }) => Promise<void>
+  }
 }
+
+export type TrackShipment = (args: {
+  payload: Payload
+  shipment: { carrier: string; trackingNumber: string }
+  order: { id: ID; number: string; scope: ID | null }
+}) => Promise<{ trackerId?: string | null } | void>
 
 export type ResolvedRestock = {
   suppliers: string
@@ -61,4 +80,8 @@ export type ResolvedRestock = {
   adminGroup: string
   /** True when Restock added its fields to an existing suppliers collection. */
   sharedSuppliers: boolean
+  track?: TrackShipment
+  notify?: RestockPluginOptions['notify']
+  /** For other plugins (Kitting's overview): orders whose parcels arrived and wait for a person to confirm. */
+  arrived?: (args: { payload: Payload; user?: unknown; scope?: ID | null }) => Promise<{ id: ID; number: string; supplier: string; deliveredAt: string | null }[]>
 }

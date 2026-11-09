@@ -47,7 +47,7 @@ describe('the purchase-order PDF', () => {
       schema: 'restock.purchase-order', version: 1, id: '1', number: 'PO-0042', status: 'approved', date: '2026-11-09T00:00:00.000Z', currency: 'USD',
       buyer: { organization: 'Example Organization', shipTo: ['1 Example Way'], billTo: ['1 Example Way'], contact: { name: null, email: null, phone: null } },
       supplier: { name: 'Example Supply', email: null, phone: null, website: null, orderUrl: null },
-      lines, totals: { subtotal: 4575, complete: true }, approvedBy: 'A. Buyer', orderedBy: null, supplierOrderReference: null, notes: null, terms: null, paperSize: 'LETTER',
+      lines, totals: { subtotal: 4575, complete: true }, shipments: [{ carrier: 'UPS', trackingNumber: '1ZEXAMPLE', status: 'delivered', deliveredAt: '2026-11-09T12:00:00.000Z' }], approvedBy: 'A. Buyer', orderedBy: null, supplierOrderReference: null, notes: null, terms: null, paperSize: 'LETTER',
     } as const
     const bytes = new Uint8Array(await purchaseOrderPDF(d as never))
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
@@ -63,6 +63,7 @@ describe('the purchase-order PDF', () => {
     }
     for (const l of lines) expect(all).toContain(l.sku)
     expect(all).toContain('$4,575.00')
+    expect(all).toContain('UPS 1ZEXAMPLE (delivered November 9, 2026)')
   })
 })
 
