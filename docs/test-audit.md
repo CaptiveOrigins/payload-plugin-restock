@@ -32,3 +32,13 @@ Gaps, planned with the steps that build them: drafting and rounding (step 2), ou
 - **Access:** `POST /api/restock/draft` refuses people who are signed out, viewers, and another site's staff.
 
 Not covered yet: Kitting's `restockNeeds` (ready-stock targets). It arrives in Kitting 0.2.x, and the test moves to it when that's on npm.
+
+## 2026-11-09, step 3 (outputs)
+
+11 tests. Added "ways to place an order":
+- quick-order lines with a comma and with a space, and the line-limit warning;
+- CSV quoting, plus a defused formula cell (security: a CSV opened in a spreadsheet can't run what a supplier item says);
+- the email draft's text, recipient and mailto;
+- product links, with a `javascript:` link refused.
+
+The order page's panel hasn't been opened in a browser yet. That's planned with receiving (step 4).

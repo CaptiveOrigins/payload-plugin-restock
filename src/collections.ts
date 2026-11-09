@@ -26,6 +26,25 @@ export const orderingFields = (): Field[] => [
         ],
       },
       {
+        type: 'row',
+        admin: { condition: (d) => d?.orderMethod === 'quick-order' },
+        fields: [
+          {
+            name: 'quickOrderSeparator',
+            type: 'select',
+            defaultValue: 'comma',
+            label: 'Quick-order lines',
+            options: [
+              { label: 'ITEM, QUANTITY', value: 'comma' },
+              { label: 'ITEM QUANTITY', value: 'space' },
+              { label: 'ITEM (tab) QUANTITY', value: 'tab' },
+            ],
+            admin: { width: '50%', description: 'As their quick-order page asks. ULINE takes a comma or a space.' },
+          },
+          { name: 'quickOrderMaxLines', type: 'number', min: 1, label: 'Most lines at a time', admin: { width: '50%', description: 'For example 95 for ULINE’s cart. Empty: no limit.' } },
+        ],
+      },
+      {
         name: 'orderNotes',
         type: 'textarea',
         label: 'Ordering notes',
@@ -329,6 +348,11 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
           },
           { name: 'note', type: 'text', label: 'Note' },
         ],
+      },
+      {
+        name: 'placeIt',
+        type: 'ui',
+        admin: { components: { Field: '@captiveorigins/payload-plugin-restock/rsc#PlaceOrder' }, condition: (_d, _s, { operation }) => operation !== 'create' },
       },
       { name: 'notes', type: 'textarea', label: 'Notes' },
     ],

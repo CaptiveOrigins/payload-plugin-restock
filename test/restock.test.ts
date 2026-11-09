@@ -3,7 +3,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { buildConfig, getPayload, type Access, type CollectionConfig, type Field, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { draftOrders, restockPlugin } from '../src/index.js'
+import { draftOrders, orderOutputs, restockPlugin } from '../src/index.js'
 
 // Made-up suppliers, items, sites and people throughout. No real account numbers or prices.
 type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -171,5 +171,40 @@ describe('drafting over HTTP', () => {
     expect((await call(staffB, siteA.id)).status).toBe(403)
     expect((await call(staffA, undefined)).status).toBe(400)
     expect((await call(staffA, siteA.id)).status).toBe(200)
+  })
+})
+
+describe('ways to place an order', () => {
+  it('gives quick-order lines, a safe CSV, an email draft and product links', async () => {
+    const supplier = await create('suppliers', {
+      tenant: siteA.id,
+      name: 'Example Packaging Co',
+      email: 'orders@supplies.example.com',
+      orderMethod: 'quick-order',
+      orderUrl: 'https://supplies.example.com/quick-order',
+      quickOrderMaxLines: 1,
+      orderNotes: 'Account EX-0000 (made up).',
+    })
+    const a = await create('supplier-items', { tenant: siteA.id, supplier: supplier.id, sku: 'H-101', name: 'Box, "small", made up', packName: 'bundle of 25', packSize: 25, price: 20, productUrl: 'https://supplies.example.com/H-101' })
+    const b = await create('supplier-items', { tenant: siteA.id, supplier: supplier.id, sku: '=CMD()', name: 'Tape, made up', packSize: 1, productUrl: 'javascript:alert(1)' })
+    const po = await create('purchase-orders', { tenant: siteA.id, supplier: supplier.id, lines: [{ item: a.id, packs: 3 }, { item: b.id, packs: 2 }] }, as(staffA))
+    const out = await orderOutputs(payload, po.id)
+    expect(out.quickOrder).toBe('H-101, 3\n=CMD(), 2')
+    expect(out.quickOrderWarning).toMatch(/takes 1 lines at a time; this order has 2/)
+    expect(out.csv.split('\r\n')).toEqual([
+      'Item number,Description,Quantity,Sold as,Price of one (USD),Line total (USD)',
+      'H-101,"Box, ""small"", made up",3,bundle of 25,20,60',
+      "'=CMD(),Tape, made up,2,each,,".replace('Tape, made up', '"Tape, made up"'),
+    ])
+    expect(out.email.to).toBe('orders@supplies.example.com')
+    expect(out.email.body).toContain('- 3 × H-101 Box, "small", made up (bundle of 25) at $20.00')
+    expect(out.email.body).toContain('Estimated total: $60.00 (some prices to confirm)')
+    expect(out.email.body).toContain('Account EX-0000 (made up).')
+    expect(out.email.mailto).toMatch(/^mailto:orders%40supplies\.example\.com\?subject=Purchase%20order%20PO-/)
+    expect(out.lines.map((l) => l.url)).toEqual(['https://supplies.example.com/H-101', null])
+    // With a space separator and no limit.
+    await update('suppliers', supplier.id, { quickOrderSeparator: 'space', quickOrderMaxLines: null })
+    const spaced = await orderOutputs(payload, po.id)
+    expect([spaced.quickOrder.split('\n')[0], spaced.quickOrderWarning]).toEqual(['H-101 3', null])
   })
 })
