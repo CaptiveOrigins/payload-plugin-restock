@@ -19,3 +19,9 @@ Dated decisions for this repo, newest last.
 - **Status changes by hand:** draft ↔ approved → ordered, and cancelled from anything not yet received. Approving and marking as ordered need `approve` access. Receiving and the cart status change only through Restock's own functions.
 - **Order numbers** are PO-0001, PO-0002 and so on per site, after the highest so far, with a unique index per site.
 - **LICENSE** is MIT, as the brief decides and as Kitting has, while the repo stays private.
+
+## 2026-11-09: what the suppliers' own pages say (read by a session, not checked by the owner)
+
+- **ULINE** (uline.com/QuickOrder, "Catalog Quick Order"): it takes model numbers and unit quantities, with the model number and quantity separated by a space or a comma, for example `H-101, 25`, one per line. There's also a "Paste Items Page". Its cart holds at most 95 items. No file upload was found. So Restock's "Copy for Quick Order" for ULINE is `MODEL, QTY` lines, with a warning past 95 lines.
+- **Zymo Research**: its Quick Order page is search-based, one item at a time, with no paste format and no upload found. So for Zymo, Restock gives product links, a CSV and an email draft.
+- **Terms on automated access:** none was found in either site's web terms that were read. Not read yet: ULINE's full terms PDF and robots.txt, and Zymo's Terms of Purchase. This matters only for Tier 2 (the Console), and is checked fully before anything is handed to it.

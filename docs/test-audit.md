@@ -15,3 +15,20 @@ Each audit maps what Restock promises (README, `docs/decisions.md`, the brief) t
 | Whole packs only | refuses lines… |
 
 Gaps, planned with the steps that build them: drafting and rounding (step 2), outputs (step 3), receiving into Kitting (step 4), and the Console API's access (step 5). Shared suppliers with Kitting get a test with step 4.
+
+## 2026-11-09, step 2 (drafting)
+
+10 tests. Added:
+- **Rounding to packs:** whole packs, minimums, and no floating-point dust. Tested as pure functions with known values.
+- **Choosing the item:** preferred first, then the cheapest per unit; items no longer sold are skipped. Pure.
+- **With Kitting** (0.1.0 from npm):
+  - Restock shares Kitting's supplier list.
+  - It drafts one order per supplier from what's below level, in whole packs and minimums.
+  - Supplies without a supplier item are listed.
+  - Another site's needs never show up.
+  - Drafting twice adds nothing.
+  - What's already on an approved order counts as on order.
+- **Without Kitting:** drafting from the host's own needs, at least the minimum. A site is required.
+- **Access:** `POST /api/restock/draft` refuses people who are signed out, viewers, and another site's staff.
+
+Not covered yet: Kitting's `restockNeeds` (ready-stock targets). It arrives in Kitting 0.2.x, and the test moves to it when that's on npm.

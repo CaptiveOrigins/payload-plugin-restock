@@ -3,12 +3,13 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { buildConfig, getPayload, type Access, type CollectionConfig, type Field, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { restockPlugin } from '../src/index.js'
+import { draftOrders, restockPlugin } from '../src/index.js'
 
 // Made-up suppliers, items, sites and people throughout. No real account numbers or prices.
 type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 
 let payload: Payload
+let hostNeeds: { supplierItem: unknown; packs: number; why?: string }[] = []
 let mongo: MongoMemoryReplSet
 const ids = (v: unknown) => ((v as unknown[]) ?? []).map((t) => (t && typeof t === 'object' ? String((t as Doc).id) : String(t)))
 /** Staff manage their sites, buyers may also approve, viewers only read. */
@@ -49,6 +50,7 @@ beforeAll(async () => {
           scopeField: 'tenant',
           access: { manage: siteAccess(['staff', 'buyer']), approve: siteAccess(['buyer']), read: siteAccess(['staff', 'buyer', 'viewer']) },
           overrides: { suppliers: withTenant, items: withTenant, orders: withTenant },
+          needs: async ({ scope }) => (String(scope) === String(siteA?.id) ? (hostNeeds as never) : []),
         }),
       ],
     }),
@@ -136,5 +138,38 @@ describe('purchase orders', () => {
     await expect(update('purchase-orders', po.id, { notes: 'x' }, as(viewerA))).rejects.toThrow()
     await expect(update('purchase-orders', po.id, { notes: 'x' }, as(staffB))).rejects.toThrow()
     await expect(create('suppliers', { tenant: siteA.id, name: 'Viewer’s supplier' }, as(viewerA))).rejects.toThrow()
+  })
+})
+
+describe('drafting without Kitting', () => {
+  it('drafts from the host’s own needs, at least the minimum, one draft per supplier', async () => {
+    const { supplier, mailer, label } = await supplierWithItems(siteA)
+    hostNeeds = [
+      { supplierItem: mailer.id, packs: 1, why: 'shop says low' }, // minimum is 2
+      { supplierItem: label.id, packs: 3 },
+    ]
+    const r = await draftOrders(payload, { scope: siteA.id })
+    const mine = r.created.filter((c) => String(c.supplier) === String(supplier.id))
+    expect(mine).toHaveLength(1)
+    const po = await get('purchase-orders', mine[0]!.id)
+    expect((po.lines as Doc[]).map((l) => [String(l.item), l.packs, l.why])).toEqual([
+      [String(mailer.id), 2, 'shop says low'],
+      [String(label.id), 3, 'from your app'],
+    ])
+    await expect(draftOrders(payload, {})).rejects.toThrow(/say which tenant/)
+    hostNeeds = []
+  })
+})
+
+describe('drafting over HTTP', () => {
+  it('drafts only for people who manage that site', async () => {
+    await supplierWithItems(siteA)
+    const endpoint = payload.config.endpoints.find((e) => e.path === '/restock/draft')!
+    const call = (user: Doc | null, scope: unknown) => endpoint.handler({ payload, user: user && { ...user, collection: 'users' }, json: async () => ({ scope }) } as never) as Promise<Response>
+    expect((await call(null, siteA.id)).status).toBe(401)
+    expect((await call(viewerA, siteA.id)).status).toBe(403)
+    expect((await call(staffB, siteA.id)).status).toBe(403)
+    expect((await call(staffA, undefined)).status).toBe(400)
+    expect((await call(staffA, siteA.id)).status).toBe(200)
   })
 })

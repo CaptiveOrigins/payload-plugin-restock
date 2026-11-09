@@ -182,7 +182,8 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
       if (operation === 'create' && to !== 'draft') throw new RestockError('status', 'A new order starts as a draft.')
       if (operation === 'update' && to !== from) {
         if (!BY_HAND[from!]?.includes(to)) throw new RestockError('status', `A ${STATUS_LABELS[from!]?.toLowerCase()} order can’t be made ${STATUS_LABELS[to]?.toLowerCase() ?? to} by hand.`)
-        if ((to === 'approved' || to === 'ordered') && !(await allows(req, o.approve, o.orders, originalDoc!.id))) throw new RestockError('forbidden', 'You can’t approve or place orders here.', 403)
+        // Signed-in people need approve access; trusted server code (no user, access overridden) doesn't.
+        if ((to === 'approved' || to === 'ordered') && req.user && !(await allows(req, o.approve, o.orders, originalDoc!.id))) throw new RestockError('forbidden', 'You can’t approve or place orders here.', 403)
       }
       // Lines change only while it's a draft. Receiving and cart status change through Restock.
       if (operation === 'update' && from !== 'draft') data.lines = originalDoc?.lines
