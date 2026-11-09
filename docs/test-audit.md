@@ -59,3 +59,12 @@ Kitting's `restockNeeds` is tested in Kitting itself (its PR #2). Restock's test
 ## 2026-11-09, browser check of the order page
 
 In a local dev server of the platform with Restock installed temporarily and made-up data. **Found and fixed:** the receive form was a `<form>` inside Payload's own edit form. That's invalid HTML: it caused a hydration error, and pressing Enter could have submitted Payload's form instead of recording the receipt. It's now a group with its own button and Enter handling. After the fix: no hydration error, and receiving 2 packs with a lot from the keyboard recorded the stock and lot in Kitting. Also: order lines show read-only once past the draft, and Copy falls back to the older copy command where the clipboard API is blocked. Rendering the panel isn't covered by unit tests (it needs the full admin), as for Kitting's pages.
+
+## 2026-11-09, step 5 (cart API for the Console)
+
+14 tests. Added "the Console's cart API":
+- signed out, manage-only staff and another site's staff are refused;
+- only approved orders are listed;
+- a failed cart needs a reason, an unknown status is refused, and a draft can't go to a cart;
+- the cart status records with a history entry, and the lines and status stay untouched;
+- an ordinary save can't change the cart status.

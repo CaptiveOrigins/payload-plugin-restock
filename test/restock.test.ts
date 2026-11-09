@@ -228,3 +228,39 @@ describe('receiving without Kitting', () => {
     expect(String(order.history.at(-1).by)).toBe(String(staffA.id))
   })
 })
+
+describe('the Console’s cart API', () => {
+  it('lists approved orders and records the cart, for people who may place orders, and changes nothing else', async () => {
+    const { supplier, mailer } = await supplierWithItems(siteA)
+    const approved = await create('purchase-orders', { tenant: siteA.id, supplier: supplier.id, lines: [{ item: mailer.id, packs: 2 }] }, as(staffA))
+    await update('purchase-orders', approved.id, { status: 'approved' }, as(buyerA))
+    const draft = await create('purchase-orders', { tenant: siteA.id, supplier: supplier.id, lines: [{ item: mailer.id, packs: 5 }] }, as(staffA))
+    const list = payload.config.endpoints.find((e) => e.path === '/restock/cart/orders')!
+    const cart = payload.config.endpoints.find((e) => e.path === '/restock/cart')!
+    const get_ = (user: Doc | null, scope: unknown) =>
+      list.handler({ payload, user: user && { ...user, collection: 'users' }, searchParams: new URLSearchParams(scope ? { scope: String(scope) } : {}) } as never) as Promise<Response>
+    const post = (user: Doc | null, body: Doc) => cart.handler({ payload, user: user && { ...user, collection: 'users' }, json: async () => body } as never) as Promise<Response>
+
+    expect((await get_(null, siteA.id)).status).toBe(401)
+    expect((await get_(staffA, siteA.id)).status).toBe(403) // may draft, may not place
+    expect((await get_(staffB, siteA.id)).status).toBe(403)
+    const ok = await get_(buyerA, siteA.id)
+    const orders = (await ok.json()).orders as Doc[]
+    expect(orders.map((x) => x.id)).toContain(approved.id)
+    expect(orders.map((x) => x.id)).not.toContain(draft.id)
+    expect(orders.find((x) => x.id === approved.id)).toMatchObject({ quickOrder: 'S-0001, 2', cartStatus: null })
+
+    expect((await post(staffA, { order: approved.id, status: 'filled' })).status).toBe(403)
+    expect((await post(buyerA, { order: approved.id, status: 'failed' })).status).toBe(400) // needs a reason
+    expect((await post(buyerA, { order: approved.id, status: 'bought' })).status).toBe(400)
+    expect((await post(buyerA, { order: draft.id, status: 'filled' })).status).toBe(400)
+    expect((await post(buyerA, { order: approved.id, status: 'filled', note: 'all 2 lines in the cart' })).status).toBe(200)
+    const after = await get('purchase-orders', approved.id)
+    expect(after).toMatchObject({ status: 'approved', cartStatus: 'filled', cartNote: 'all 2 lines in the cart' })
+    expect(after.lines.map((l: Doc) => l.packs)).toEqual([2])
+    expect(after.history.at(-1).note).toBe('Cart filled: all 2 lines in the cart')
+    // Nobody can set the cart status through an ordinary save.
+    await update('purchase-orders', approved.id, { cartStatus: 'failed', cartNote: 'x' }, as(buyerA))
+    expect((await get('purchase-orders', approved.id)).cartStatus).toBe('filled')
+  })
+})

@@ -1,8 +1,9 @@
 import type { CollectionSlug, Endpoint, PayloadRequest, Where } from 'payload'
 
+import { ordersForCart, recordCart } from './console.js'
 import { draftOrders } from './draft.js'
 import { receiveOrder, type ReceiveLine } from './receive.js'
-import type { ID } from './types.js'
+import type { CartStatus, ID } from './types.js'
 import { allows, RestockError, restockOf } from './util.js'
 
 type Body = Record<string, unknown>
@@ -61,6 +62,44 @@ export const restockEndpoints: Endpoint[] = [
       const lines = (Array.isArray(body.lines) ? body.lines : []) as ReceiveLine[]
       try {
         return json(await receiveOrder(req.payload, order, lines, { req: { user: req.user, payload: req.payload } as PayloadRequest, note: typeof body.note === 'string' ? body.note : undefined }))
+      } catch (error) {
+        return fail(req, error)
+      }
+    },
+  },
+  {
+    // For the Console: approved orders on a site. People who may approve (place) orders only.
+    path: '/restock/cart/orders',
+    method: 'get',
+    handler: async (req) => {
+      const o = restockOf(req.payload)
+      if (!req.user || req.user.collection !== o.userSlug) return json({ message: 'Sign in first.' }, 401)
+      const scope = o.scopeField ? ((req.searchParams.get('scope') as ID | null) ?? null) : null
+      if (o.scopeField && scope === null) return json({ message: `Say which ${o.scopeField}.` }, 400)
+      try {
+        const orders = await ordersForCart(req.payload, { scope, req: { user: req.user, payload: req.payload } as PayloadRequest })
+        const allowed = []
+        for (const order of orders) if (await allows(req, o.approve, o.orders, order.id)) allowed.push(order)
+        if (orders.length && !allowed.length) return json({ message: 'You can’t place orders here.' }, 403)
+        return json({ orders: allowed })
+      } catch (error) {
+        return fail(req, error)
+      }
+    },
+  },
+  {
+    // For the Console: record whether it filled the cart. Nothing else can change through it.
+    path: '/restock/cart',
+    method: 'post',
+    handler: async (req) => {
+      const o = restockOf(req.payload)
+      if (!req.user || req.user.collection !== o.userSlug) return json({ message: 'Sign in first.' }, 401)
+      const body = await bodyOf(req)
+      const order = body.order as ID | undefined
+      if (order === undefined) return json({ message: 'Say which order.' }, 400)
+      if (!(await allows(req, o.approve, o.orders, order))) return json({ message: 'You can’t place this order.' }, 403)
+      try {
+        return json(await recordCart(req.payload, order, { status: body.status as CartStatus, note: typeof body.note === 'string' ? body.note : undefined, req: { user: req.user, payload: req.payload } as PayloadRequest }))
       } catch (error) {
         return fail(req, error)
       }

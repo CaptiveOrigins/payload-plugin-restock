@@ -4,3 +4,4 @@ export type { CartStatus, ID, NeedsFunction, OrderMethod, OrderStatus, RestockPl
 export { draftOrders, kittingNeeds, packsFor, pickItem, type DraftResult, type SupplyNeed } from './draft.js'
 export { csvField, orderOutputs, type OrderOutputs, type OutputLine } from './outputs.js'
 export { receiveOrder, type ReceiveLine, type ReceiveResult } from './receive.js'
+export { ordersForCart, recordCart, type CartOrder } from './console.js'
