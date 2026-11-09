@@ -179,7 +179,7 @@ describe('ways to place an order', () => {
     const supplier = await create('suppliers', {
       tenant: siteA.id,
       name: 'Example Packaging Co',
-      email: 'orders@supplies.example.com',
+      email: 'orders@example.com',
       orderMethod: 'quick-order',
       orderUrl: 'https://supplies.example.com/quick-order',
       quickOrderMaxLines: 1,
@@ -196,7 +196,7 @@ describe('ways to place an order', () => {
       'H-101,"Box, ""small"", made up",3,bundle of 25,20,60',
       "'=CMD(),Tape, made up,2,each,,".replace('Tape, made up', '"Tape, made up"'),
     ])
-    expect(out.email.to).toBe('orders@supplies.example.com')
+    expect(out.email.to).toBe('orders@example.com')
     expect(out.email.body).toContain('- 3 × H-101 Box, "small", made up (bundle of 25) at $20.00')
     expect(out.email.body).toContain('Estimated total: $60.00 (some prices to confirm)')
     expect(out.email.body).toContain('Account EX-0000 (made up).')
