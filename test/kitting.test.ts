@@ -4,7 +4,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { buildConfig, getPayload, type CollectionConfig, type Field, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { draftOrders, restockPlugin } from '../src/index.js'
+import { draftOrders, receiveOrder, restockPlugin } from '../src/index.js'
 
 // Restock with Kitting (from npm), on its own database. Made-up sites, suppliers and supplies.
 type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -88,5 +88,38 @@ describe('with Kitting', () => {
     const third = await draftOrders(payload, { scope: site.id })
     expect(third.created).toHaveLength(0)
     expect(third.covered.map((c) => c.name)).toEqual(['Swab'])
+  })
+})
+
+describe('receiving into Kitting', () => {
+  it('adds stock (with lots) through Kitting, refuses more than ordered, and moves the order on', async () => {
+    const lab = await create('suppliers', { tenant: site.id, name: 'Example Lab Supply (receiving)' })
+    const tube = await create('supply-items', { tenant: site.id, name: 'Receiving tube', unit: 'each', openingStock: 10, trackLots: true, openingLotNumber: 'OLD' })
+    const glove = await create('supply-items', { tenant: site.id, name: 'Receiving glove', unit: 'each', openingStock: 0 })
+    const tubeItem = await create('supplier-items', { tenant: site.id, supplier: lab.id, kittingItem: tube.id, sku: 'T-100', name: 'Tubes, made up', packName: 'rack of 100', packSize: 100 })
+    const gloveItem = await create('supplier-items', { tenant: site.id, supplier: lab.id, kittingItem: glove.id, sku: 'G-50', name: 'Gloves, made up', packSize: 50 })
+    const po = await create('purchase-orders', { tenant: site.id, supplier: lab.id, lines: [{ item: tubeItem.id, packs: 3 }, { item: gloveItem.id, packs: 1 }] })
+    await expect(receiveOrder(payload, po.id, [{ line: 0, packs: 1 }])).rejects.toThrow(/Only ordered orders/)
+    await payload.update({ collection: 'purchase-orders' as never, id: po.id, data: { status: 'approved' } as never })
+    await payload.update({ collection: 'purchase-orders' as never, id: po.id, data: { status: 'ordered', orderReference: 'EX-77' } as never })
+
+    const first = await receiveOrder(payload, po.id, [{ line: 0, packs: 2, lotNumber: 'L-NEW', expiresOn: '2099-01-01T00:00:00.000Z' }])
+    expect(first).toMatchObject({ status: 'partly-received', received: [{ sku: 'T-100', packs: 2, stock: { quantity: 200, unit: 'each' } }] })
+    expect((await get('supply-items', tube.id)).onHand).toBe(210)
+    const lots = ((await payload.find({ collection: 'supply-lots' as never, where: { item: { equals: tube.id } }, depth: 0 })).docs as Doc[]).map((l) => [l.lotNumber, l.onHand])
+    expect(lots).toEqual(expect.arrayContaining([['L-NEW', 200]]))
+    const movement = ((await payload.find({ collection: 'supply-movements' as never, where: { item: { equals: tube.id } }, sort: '-createdAt', limit: 1, depth: 0 })).docs as Doc[])[0]!
+    expect(movement).toMatchObject({ kind: 'received', change: 200 })
+    expect(movement.reference).toMatch(/^PO-\d{4} \/ EX-77$/)
+
+    await expect(receiveOrder(payload, po.id, [{ line: 0, packs: 2 }])).rejects.toThrow(/1 pack still to come, not 2/)
+    expect((await get('supply-items', tube.id)).onHand).toBe(210) // nothing written by the refusal
+    const done = await receiveOrder(payload, po.id, [{ line: 0, packs: 1 }, { item: gloveItem.id, packs: 1 }])
+    expect(done.status).toBe('received')
+    expect((await get('supply-items', glove.id)).onHand).toBe(50)
+    const order = await get('purchase-orders', po.id)
+    expect(order.lines.map((l: Doc) => l.receivedPacks)).toEqual([3, 1])
+    expect(order.history.map((h: Doc) => h.to)).toEqual(['draft', 'approved', 'ordered', 'partly-received', 'received'])
+    await expect(receiveOrder(payload, po.id, [{ line: 1, packs: 1 }])).rejects.toThrow(/Only ordered orders/)
   })
 })

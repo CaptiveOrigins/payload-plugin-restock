@@ -2,7 +2,7 @@
 
 Restock for Payload: supplier lists, purchase orders and receiving, fed by your stock levels, with copy-ready orders for suppliers that have no API.
 
-**Status:** early, 0.1.0 in progress, not on npm. Built so far: suppliers, supplier items, purchase orders with their life cycle, access and site isolation, and drafting orders from stock levels (with Kitting 0.1.0 from npm, or your own needs). 11 tests pass against a real MongoDB (in memory, single-node replica set) on Payload 3.92. Not built yet: receiving and the Console API. Nothing has been tried in a browser yet.
+**Status:** early, 0.1.0 in progress, not on npm. Built so far: suppliers, supplier items, purchase orders with their life cycle, access and site isolation, and drafting orders from stock levels (with Kitting 0.1.0 from npm, or your own needs). 13 tests pass against a real MongoDB (in memory, single-node replica set) on Payload 3.92. Not built yet: the Console API. Nothing has been tried in a browser yet.
 
 Restock never buys anything and never stores passwords or card numbers. It drafts; a person checks, approves and places the order.
 
@@ -29,6 +29,11 @@ Restock never buys anything and never stores passwords or card numbers. It draft
   - **Download CSV:** item number, description, quantity, what it's sold as, price and line total. Cells a spreadsheet could run as a formula are defused.
   - **Email draft:** opens in your email app with the order filled in. Nothing is sent until you send it.
   - **Links:** to their order page and to each product page (http and https only).
+- **Receiving** (on an ordered order's page, `receiveOrder(payload, id, lines)` and `POST /api/restock/receive`): what arrived, in whole packs per line, with a lot number and use-by date where the supply tracks lots.
+  - **More than ordered** is refused.
+  - **Status:** the order becomes partly received or received, with who and when in its history.
+  - **With Kitting:** each line linked to a supply adds stock through Kitting's own movements, converted from packs to the supply's unit and referenced with the order number. So Kitting's access check, lots and alerts all apply.
+  - **All or nothing:** a receipt that's refused writes nothing.
 - **Access:** `manage` drafts and receives, `approve` approves and marks orders as ordered, and `read` sees them. With `scopeField`, everything stays inside one site. An order can't use another supplier's items, and nothing links across sites.
 
 ## Install

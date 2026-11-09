@@ -208,3 +208,23 @@ describe('ways to place an order', () => {
     expect([spaced.quickOrder.split('\n')[0], spaced.quickOrderWarning]).toEqual(['H-101 3', null])
   })
 })
+
+describe('receiving without Kitting', () => {
+  it('records what arrived, for people who manage that site only', async () => {
+    const { supplier, mailer } = await supplierWithItems(siteA)
+    const po = await create('purchase-orders', { tenant: siteA.id, supplier: supplier.id, lines: [{ item: mailer.id, packs: 2 }] }, as(staffA))
+    await update('purchase-orders', po.id, { status: 'approved' }, as(buyerA))
+    await update('purchase-orders', po.id, { status: 'ordered' }, as(buyerA))
+    const endpoint = payload.config.endpoints.find((e) => e.path === '/restock/receive')!
+    const call = (user: Doc | null, body: Doc) => endpoint.handler({ payload, user: user && { ...user, collection: 'users' }, json: async () => body } as never) as Promise<Response>
+    expect((await call(null, { order: po.id, lines: [{ line: 0, packs: 1 }] })).status).toBe(401)
+    expect((await call(viewerA, { order: po.id, lines: [{ line: 0, packs: 1 }] })).status).toBe(403)
+    expect((await call(staffB, { order: po.id, lines: [{ line: 0, packs: 1 }] })).status).toBe(403)
+    expect((await call(staffA, { order: po.id, lines: [{ line: 0, packs: 0.5 }] })).status).toBe(400)
+    const ok = await call(staffA, { order: po.id, lines: [{ line: 0, packs: 2 }], note: 'all fine' })
+    expect([ok.status, (await ok.json()).status]).toEqual([200, 'received'])
+    const order = await get('purchase-orders', po.id)
+    expect(order.history.at(-1)).toMatchObject({ to: 'received', note: 'Received 2 × S-0001. all fine' })
+    expect(String(order.history.at(-1).by)).toBe(String(staffA.id))
+  })
+})

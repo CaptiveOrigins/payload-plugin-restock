@@ -213,7 +213,8 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
       data.history = []
       data.number = await nextNumber(req, o, scope)
     }
-    if (to !== from) {
+    // Restock's own writes (receiving) record their own history entry.
+    if (to !== from && (!internal || operation === 'create')) {
       const by = userID(o, req)
       data.history = [...((data.history ?? originalDoc?.history ?? []) as Doc[]), { at: new Date().toISOString(), by, from: from ?? 'new', to, note: data.statusNote ?? null }]
       if (to === 'ordered') {

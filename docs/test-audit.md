@@ -42,3 +42,16 @@ Not covered yet: Kitting's `restockNeeds` (ready-stock targets). It arrives in K
 - product links, with a `javascript:` link refused.
 
 The order page's panel hasn't been opened in a browser yet. That's planned with receiving (step 4).
+
+## 2026-11-09, step 4 (receiving)
+
+13 tests. Added:
+- **Receiving into Kitting** (0.1.0 from npm):
+  - stock arrives through Kitting's movements, with the lot and use-by date;
+  - packs are converted to the supply's unit, and the reference carries the order numbers;
+  - more than ordered is refused and writes nothing;
+  - the order goes partly received, then received, with history;
+  - an order that isn't ordered can't be received.
+- **Receiving without Kitting:** `POST /api/restock/receive` refuses people who are signed out, viewers, and another site's staff. It refuses part packs, and records who received it and a note.
+
+Kitting's `restockNeeds` is tested in Kitting itself (its PR #2). Restock's tests still use Kitting 0.1.0's below-level fallback until 0.2.0 is on npm.
