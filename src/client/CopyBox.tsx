@@ -35,20 +35,3 @@ export function CopyBox({ label, text, rows = 6, help }: { label: string; text: 
     </div>
   )
 }
-
-/** Download text as a file, without a server round trip. */
-export function DownloadButton({ name, text, type, label }: { name: string; text: string; type: string; label: string }) {
-  const download = () => {
-    const url = URL.createObjectURL(new Blob([text], { type }))
-    const a = document.createElement('a')
-    a.href = url
-    a.download = name
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-  return (
-    <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: '0 8px 0 0' }} onClick={download}>
-      {label}
-    </button>
-  )
-}

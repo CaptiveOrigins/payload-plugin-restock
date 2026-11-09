@@ -1,7 +1,9 @@
 import type { CollectionSlug, Endpoint, PayloadRequest, Where } from 'payload'
 
 import { ordersForCart, recordCart } from './console.js'
+import { purchaseOrderCSV, purchaseOrderDocument } from './document.js'
 import { draftOrders } from './draft.js'
+import { purchaseOrderPDF } from './pdf.js'
 import { receiveOrder, type ReceiveLine } from './receive.js'
 import type { CartStatus, ID } from './types.js'
 import { allows, RestockError, restockOf } from './util.js'
@@ -100,6 +102,29 @@ export const restockEndpoints: Endpoint[] = [
       if (!(await allows(req, o.approve, o.orders, order))) return json({ message: 'You can’t place this order.' }, 403)
       try {
         return json(await recordCart(req.payload, order, { status: body.status as CartStatus, note: typeof body.note === 'string' ? body.note : undefined, req: { user: req.user, payload: req.payload } as PayloadRequest }))
+      } catch (error) {
+        return fail(req, error)
+      }
+    },
+  },
+  {
+    // Exports: GET /api/restock/order/:id/csv, /json or /pdf, for people who may read that order.
+    path: '/restock/order/:id/:format',
+    method: 'get',
+    handler: async (req) => {
+      const o = restockOf(req.payload)
+      if (!req.user || req.user.collection !== o.userSlug) return json({ message: 'Sign in first.' }, 401)
+      const id = req.routeParams?.id as ID | undefined
+      const format = String(req.routeParams?.format ?? '')
+      if (!id || !['csv', 'json', 'pdf'].includes(format)) return json({ message: 'Ask for csv, json or pdf.' }, 400)
+      if (!(await allows(req, o.read, o.orders, id))) return json({ message: 'You can’t see this order.' }, 403)
+      try {
+        const d = await purchaseOrderDocument(req.payload, id, { req: { user: req.user, payload: req.payload } as PayloadRequest })
+        const name = `${d.number}-${d.supplier.name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'supplier'}`
+        const headers = (type: string, ext: string) => ({ 'Content-Type': type, 'Content-Disposition': `attachment; filename="${name}.${ext}"`, 'Cache-Control': 'no-store' })
+        if (format === 'json') return new Response(JSON.stringify(d, null, 2), { headers: headers('application/json; charset=utf-8', 'json') })
+        if (format === 'csv') return new Response(purchaseOrderCSV(d), { headers: headers('text/csv; charset=utf-8', 'csv') })
+        return new Response(new Uint8Array(await purchaseOrderPDF(d)), { headers: headers('application/pdf', 'pdf') })
       } catch (error) {
         return fail(req, error)
       }

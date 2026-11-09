@@ -28,3 +28,52 @@ describe('choosing a supplier item', () => {
     expect(pickItem([{ id: 'c', active: false }])).toBeNull()
   })
 })
+
+describe('the purchase-order PDF', () => {
+  it('runs onto more pages on Letter, numbering each one, with every line in the text', async () => {
+    const { purchaseOrderPDF } = await import('../src/pdf.js')
+    const lines = Array.from({ length: 60 }, (_, i) => ({
+      sku: `X-${String(i + 1).padStart(3, '0')}`,
+      description: `Made-up item ${i + 1}, with a description long enough to wrap onto a second line in the table`,
+      quantity: i + 1,
+      soldAs: 'box of 10',
+      packSize: 10,
+      unitPrice: 2.5,
+      lineTotal: 2.5 * (i + 1),
+      receivedQuantity: 0,
+      productUrl: null,
+    }))
+    const d = {
+      schema: 'restock.purchase-order', version: 1, id: '1', number: 'PO-0042', status: 'approved', date: '2026-11-09T00:00:00.000Z', currency: 'USD',
+      buyer: { organization: 'Example Organization', shipTo: ['1 Example Way'], billTo: ['1 Example Way'], contact: { name: null, email: null, phone: null } },
+      supplier: { name: 'Example Supply', email: null, phone: null, website: null, orderUrl: null },
+      lines, totals: { subtotal: 4575, complete: true }, approvedBy: 'A. Buyer', orderedBy: null, supplierOrderReference: null, notes: null, terms: null, paperSize: 'LETTER',
+    } as const
+    const bytes = new Uint8Array(await purchaseOrderPDF(d as never))
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+    const pdf = await pdfjs.getDocument({ data: bytes }).promise
+    expect(pdf.numPages).toBeGreaterThan(1)
+    let all = ''
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p)
+      expect(Math.round(page.view[2]!)).toBe(612) // US Letter width
+      const text = (await page.getTextContent()).items.map((i) => ('str' in i ? i.str : '')).join(' ')
+      expect(text).toContain(`page ${p} of ${pdf.numPages}`)
+      all += text
+    }
+    for (const l of lines) expect(all).toContain(l.sku)
+    expect(all).toContain('$4,575.00')
+  })
+})
+
+describe('CSV cells', () => {
+  it('quotes commas, quotes and line breaks, and defuses cells a spreadsheet would run', async () => {
+    const { csvField } = await import('../src/index.js')
+    expect(csvField('plain')).toBe('plain')
+    expect(csvField('Box, "small"')).toBe('"Box, ""small"""')
+    expect(csvField('two\nlines')).toBe('"two\nlines"')
+    for (const risky of ['=CMD()', '+1', '-1+1', '@SUM(A1)']) expect(csvField(risky).startsWith("'")).toBe(true)
+    expect(csvField(null)).toBe('')
+    expect(csvField(18.4)).toBe('18.4')
+  })
+})

@@ -5,3 +5,5 @@ export { draftOrders, kittingNeeds, packsFor, pickItem, type DraftResult, type S
 export { csvField, orderOutputs, type OrderOutputs, type OutputLine } from './outputs.js'
 export { receiveOrder, type ReceiveLine, type ReceiveResult } from './receive.js'
 export { ordersForCart, recordCart, type CartOrder } from './console.js'
+export { purchaseOrderCSV, purchaseOrderDocument, type PurchaseOrderDocument } from './document.js'
+export { purchaseOrderPDF } from './pdf.js'

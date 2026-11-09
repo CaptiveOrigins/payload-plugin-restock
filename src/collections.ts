@@ -369,3 +369,73 @@ async function nextNumber(req: PayloadRequest, o: ResolvedRestock, scope: unknow
   const n = Number(String(last?.number ?? 'PO-0').replace(/^PO-/, '')) || 0
   return `PO-${String(n + 1).padStart(4, '0')}`
 }
+
+const address = (name: string, label: string, condition?: (d: Doc) => boolean): Field => ({
+  name,
+  type: 'group',
+  label,
+  ...(condition ? { admin: { condition } } : {}),
+  fields: [
+    { name: 'name', type: 'text', label: 'Name or attention line' },
+    { name: 'line1', type: 'text', label: 'Address' },
+    { name: 'line2', type: 'text', label: 'Address, second line' },
+    {
+      type: 'row',
+      fields: [
+        { name: 'city', type: 'text', label: 'City', admin: { width: '40%' } },
+        { name: 'region', type: 'text', label: 'State or region', admin: { width: '30%' } },
+        { name: 'postalCode', type: 'text', label: 'Postal code', admin: { width: '30%' } },
+      ],
+    },
+    { name: 'country', type: 'text', label: 'Country' },
+  ],
+})
+
+/** Who's buying, per site: printed on purchase orders. One per site; nothing is hard-coded. */
+export function settingsCollection(o: ResolvedRestock): CollectionConfig {
+  const beforeChange: CollectionBeforeChangeHook = async ({ data, originalDoc, req }) => {
+    const scope = o.scopeField ? idOf(data[o.scopeField] ?? originalDoc?.[o.scopeField]) : null
+    const clash = await req.payload.find({
+      collection: o.settings as CollectionSlug,
+      where: { and: [...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []), ...(o.scopeField ? [{ [o.scopeField]: { equals: scope } }] : [])] },
+      limit: 1,
+      pagination: false,
+      ...sys,
+      req,
+    })
+    if (clash.docs.length) throw new RestockError('settingsTaken', 'Restock settings already exist here. Edit those instead.')
+    return data
+  }
+  return {
+    slug: o.settings,
+    labels: { singular: 'Restock settings', plural: 'Restock settings' },
+    admin: { group: o.adminGroup, useAsTitle: 'organizationName', description: 'Who is buying: printed on every purchase order.' },
+    access: { read: o.read, create: o.manage, update: o.manage, delete: o.manage },
+    hooks: { beforeChange: [beforeChange] },
+    fields: [
+      { name: 'organizationName', type: 'text', required: true, label: 'Organization name', admin: { description: 'As it should appear at the top of a purchase order.' } },
+      address('shipTo', 'Ship to'),
+      { name: 'billToSame', type: 'checkbox', defaultValue: true, label: 'Bill to the same address' },
+      address('billTo', 'Bill to', (d) => d?.billToSame === false),
+      {
+        type: 'row',
+        fields: [
+          { name: 'contactName', type: 'text', label: 'Contact name', admin: { width: '34%' } },
+          { name: 'contactEmail', type: 'email', label: 'Contact email', admin: { width: '33%' } },
+          { name: 'contactPhone', type: 'text', label: 'Contact phone', admin: { width: '33%' } },
+        ],
+      },
+      {
+        name: 'paperSize',
+        type: 'select',
+        defaultValue: 'LETTER',
+        label: 'Paper',
+        options: [
+          { label: 'US Letter', value: 'LETTER' },
+          { label: 'A4', value: 'A4' },
+        ],
+      },
+      { name: 'terms', type: 'textarea', label: 'Printed at the foot of every order', admin: { description: 'For example payment terms or delivery hours.' } },
+    ],
+  }
+}

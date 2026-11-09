@@ -68,3 +68,18 @@ In a local dev server of the platform with Restock installed temporarily and mad
 - a failed cart needs a reason, an unknown status is refused, and a draft can't go to a cart;
 - the cart status records with a history entry, and the lines and status stay untouched;
 - an ordinary save can't change the cart status.
+
+## 2026-11-09, exports (CSV, JSON, PDF; owner's request)
+
+17 tests. Added:
+- **Exports:** one document feeds the JSON, CSV and PDF.
+  - The site's own buyer details are used, and the settings are one per site.
+  - The JSON matches its documented format.
+  - The CSV has a byte-order mark and the right columns.
+  - The PDF is tagged (structure tree, marked content, language, title, table header cells) and A4 when set.
+  - Its extracted text holds the organization, number, supplier, address, lines, total, "to be confirmed", the approver and the terms.
+  - Access: signed out and another site refused, a viewer allowed, an unknown format refused.
+- **The PDF on Letter:** a 60-line order runs onto more pages, each numbered "page n of N", and every line's text is present.
+- **CSV cells:** quoting and defused formula cells (pure).
+
+Checked by eye: a sample PDF, which looked right (layout, table and totals). Not checked: a screen reader on the PDF, or printing on paper. The fonts aren't embedded (Helvetica is a standard PDF font), so it isn't strict PDF/UA.

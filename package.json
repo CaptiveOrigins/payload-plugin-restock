@@ -52,10 +52,10 @@
     "prepublishOnly": "npm run typecheck && npm test"
   },
   "peerDependencies": {
+    "@captiveorigins/payload-plugin-kitting": ">=0.2.0",
     "@payloadcms/next": "^3.80.0",
     "payload": "^3.80.0",
-    "react": ">=19",
-    "@captiveorigins/payload-plugin-kitting": ">=0.2.0"
+    "react": ">=19"
   },
   "peerDependenciesMeta": {
     "@captiveorigins/payload-plugin-kitting": {
@@ -68,14 +68,19 @@
     "@payloadcms/next": "3.92.1",
     "@payloadcms/ui": "3.92.1",
     "@types/node": "^24.0.0",
+    "@types/pdfkit": "0.17.7",
     "@types/react": "^19.3.0",
     "graphql": "^16.14.2",
     "mongodb-memory-server": "^11.3.0",
     "next": "16.3.3",
     "payload": "3.92.1",
+    "pdfjs-dist": "6.5.438",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
+  },
+  "dependencies": {
+    "pdfkit": "0.20.2"
   }
 }

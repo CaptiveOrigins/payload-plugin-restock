@@ -1,7 +1,7 @@
 import type { Payload } from 'payload'
 import React from 'react'
 
-import { CopyBox, DownloadButton } from '../client/CopyBox.js'
+import { CopyBox } from '../client/CopyBox.js'
 import { ReceiveForm } from '../client/ReceiveForm.js'
 import { restockOf, idOf, num } from '../util.js'
 import { orderOutputs } from '../outputs.js'
@@ -60,7 +60,11 @@ export async function PlaceOrder(props: { id?: string | number; payload: Payload
         </>
       ) : null}
       <p style={{ margin: '0 0 var(--base)' }}>
-        <DownloadButton name={`${out.number}.csv`} text={out.csv} type="text/csv" label="Download CSV" />
+        {(['pdf', 'csv', 'json'] as const).map((f) => (
+          <a key={f} className="btn btn--style-secondary btn--size-small" style={{ margin: '0 8px 0 0' }} href={`${props.payload.config.routes.api}/restock/order/${String(props.id)}/${f}`} download>
+            {f === 'pdf' ? 'Download PDF' : f === 'csv' ? 'Download CSV' : 'Download JSON'}
+          </a>
+        ))}
         {out.email.mailto ? (
           <a className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} href={out.email.mailto}>
             Open as an email draft

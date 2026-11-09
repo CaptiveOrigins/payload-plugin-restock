@@ -49,7 +49,7 @@ beforeAll(async () => {
         restockPlugin({
           scopeField: 'tenant',
           access: { manage: siteAccess(['staff', 'buyer']), approve: siteAccess(['buyer']), read: siteAccess(['staff', 'buyer', 'viewer']) },
-          overrides: { suppliers: withTenant, items: withTenant, orders: withTenant },
+          overrides: { suppliers: withTenant, items: withTenant, orders: withTenant, settings: withTenant },
           needs: async ({ scope }) => (String(scope) === String(siteA?.id) ? (hostNeeds as never) : []),
         }),
       ],
@@ -175,7 +175,7 @@ describe('drafting over HTTP', () => {
 })
 
 describe('ways to place an order', () => {
-  it('gives quick-order lines, a safe CSV, an email draft and product links', async () => {
+  it('gives quick-order lines, an email draft and product links', async () => {
     const supplier = await create('suppliers', {
       tenant: siteA.id,
       name: 'Example Packaging Co',
@@ -191,11 +191,6 @@ describe('ways to place an order', () => {
     const out = await orderOutputs(payload, po.id)
     expect(out.quickOrder).toBe('H-101, 3\n=CMD(), 2')
     expect(out.quickOrderWarning).toMatch(/takes 1 lines at a time; this order has 2/)
-    expect(out.csv.split('\r\n')).toEqual([
-      'Item number,Description,Quantity,Sold as,Price of one (USD),Line total (USD)',
-      'H-101,"Box, ""small"", made up",3,bundle of 25,20,60',
-      "'=CMD(),Tape, made up,2,each,,".replace('Tape, made up', '"Tape, made up"'),
-    ])
     expect(out.email.to).toBe('orders@example.com')
     expect(out.email.body).toContain('- 3 × H-101 Box, "small", made up (bundle of 25) at $20.00')
     expect(out.email.body).toContain('Estimated total: $60.00 (some prices to confirm)')
@@ -262,5 +257,70 @@ describe('the Console’s cart API', () => {
     // Nobody can set the cart status through an ordinary save.
     await update('purchase-orders', approved.id, { cartStatus: 'failed', cartNote: 'x' }, as(buyerA))
     expect((await get('purchase-orders', approved.id)).cartStatus).toBe('filled')
+  })
+})
+
+describe('exports: CSV, JSON and PDF', () => {
+  it('builds every export from one document, with the site’s own buyer details, for people who may read the order', async () => {
+    const supplier = await create('suppliers', { tenant: siteA.id, name: 'Example Packaging Co', email: 'orders@example.com' })
+    const item = await create('supplier-items', { tenant: siteA.id, supplier: supplier.id, sku: 'S-0100', name: 'Mailer, “padded”, made up', packName: 'bundle of 25', packSize: 25, price: 18.4 })
+    const free = await create('supplier-items', { tenant: siteA.id, supplier: supplier.id, sku: 'S-0101', name: 'Sample, made up', packSize: 1 })
+    await create('restock-settings', {
+      tenant: siteA.id,
+      organizationName: 'Example Organization',
+      shipTo: { name: 'Attn: Receiving', line1: '1 Example Way', city: 'Exampleton', region: 'EX', postalCode: '00000', country: 'USA' },
+      contactName: 'Pat Example',
+      terms: 'Net 30. Deliveries weekdays 9 to 4.',
+      paperSize: 'A4',
+    }, as(staffA))
+    await expect(create('restock-settings', { tenant: siteA.id, organizationName: 'Again' }, as(staffA))).rejects.toThrow(/already exist/)
+    const po = await create('purchase-orders', { tenant: siteA.id, supplier: supplier.id, notes: 'Please label boxes with the order number.', lines: [{ item: item.id, packs: 4 }, { item: free.id, packs: 1 }] }, as(staffA))
+    await update('purchase-orders', po.id, { status: 'approved' }, as(buyerA))
+
+    const endpoint = payload.config.endpoints.find((e) => e.path === '/restock/order/:id/:format')!
+    const call = (user: Doc | null, format: string) => endpoint.handler({ payload, user: user && { ...user, collection: 'users' }, routeParams: { id: po.id, format } } as never) as Promise<Response>
+    expect((await call(null, 'pdf')).status).toBe(401)
+    expect((await call(staffB, 'pdf')).status).toBe(403)
+    expect((await call(staffA, 'xls')).status).toBe(400)
+
+    const json = await (await call(viewerA, 'json')).json()
+    expect(json).toMatchObject({
+      schema: 'restock.purchase-order',
+      version: 1,
+      number: po.number,
+      status: 'approved',
+      buyer: { organization: 'Example Organization', shipTo: ['Attn: Receiving', '1 Example Way', 'Exampleton, EX 00000', 'USA'], billTo: ['Attn: Receiving', '1 Example Way', 'Exampleton, EX 00000', 'USA'] },
+      supplier: { name: 'Example Packaging Co', email: 'orders@example.com' },
+      totals: { subtotal: 73.6, complete: false },
+      approvedBy: 'buyer-a@example.com',
+      paperSize: 'A4',
+    })
+    expect(json.lines[0]).toEqual({ sku: 'S-0100', description: 'Mailer, “padded”, made up', quantity: 4, soldAs: 'bundle of 25', packSize: 25, unitPrice: 18.4, lineTotal: 73.6, receivedQuantity: 0, productUrl: null })
+
+    const csvRes = await call(viewerA, 'csv')
+    expect(csvRes.headers.get('content-disposition')).toMatch(/filename="PO-\d{4}-Example-Packaging-Co\.csv"/)
+    const csvBytes = new Uint8Array(await csvRes.arrayBuffer())
+    expect([...csvBytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]) // a byte-order mark, so Excel reads it as UTF-8
+    const csv = new TextDecoder().decode(csvBytes)
+    expect(csv.split('\r\n').slice(0, 3)).toEqual([
+      'Supplier item number,Description,Quantity,Sold as,Pack size,Unit price (USD),Line total (USD)',
+      'S-0100,"Mailer, “padded”, made up",4,bundle of 25,25,18.4,73.6',
+      'S-0101,"Sample, made up",1,each,1,,',
+    ])
+
+    const pdfRes = await call(viewerA, 'pdf')
+    expect(pdfRes.headers.get('content-type')).toBe('application/pdf')
+    const bytes = new Uint8Array(await pdfRes.arrayBuffer())
+    const raw = Buffer.from(bytes).toString('latin1')
+    expect(raw.startsWith('%PDF-1.7')).toBe(true)
+    // Tagged for screen readers: a structure tree, marked content, a language and a title shown in the window.
+    for (const marker of ['/StructTreeRoot', '/Marked true', '/Lang (en-US)', '/DisplayDocTitle true', '/Table', '/TH', '/H1']) expect(raw).toContain(marker)
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+    const pdf = await pdfjs.getDocument({ data: bytes, useSystemFonts: false }).promise
+    const page = await pdf.getPage(1)
+    expect(Math.round(page.view[2]!)).toBe(595) // A4 width in points
+    const text = (await page.getTextContent()).items.map((i) => ('str' in i ? i.str : '')).join(' ')
+    for (const expected of ['Example Organization', `Purchase order ${po.number}`, 'Example Packaging Co', 'Attn: Receiving', 'S-0100', '$73.60', 'some prices to be confirmed', 'Approved by buyer-a@example.com', 'Net 30.', 'page 1 of 1'])
+      expect(text).toContain(expected)
   })
 })

@@ -13,7 +13,6 @@ export type OrderOutputs = {
   quickOrder: string
   /** When the supplier's page takes fewer lines than this order has. */
   quickOrderWarning: string | null
-  csv: string
   email: { to: string | null; subject: string; body: string; mailto: string | null }
   total: number
   totalComplete: boolean
@@ -33,7 +32,8 @@ const money = (n: number, currency: string) => new Intl.NumberFormat('en', { sty
 
 /**
  * Everything a person needs to place an order themselves: lines to paste into the supplier's
- * quick-order page, a CSV, an email draft (never sent by Restock) and product links.
+ * quick-order page, an email draft (never sent by Restock) and product links. The CSV, JSON and
+ * PDF come from `purchaseOrderDocument`.
  */
 export async function orderOutputs(payload: Payload, orderID: ID, options: { req?: Req } = {}): Promise<OrderOutputs> {
   const o = restockOf(payload)
@@ -61,10 +61,6 @@ export async function orderOutputs(payload: Payload, orderID: ID, options: { req
   const max = num(supplier?.quickOrderMaxLines)
   const quickOrder = lines.map((l) => `${l.sku}${sep}${l.packs}`).join('\n')
   const quickOrderWarning = max !== null && lines.length > max ? `${supplier?.name ?? 'This supplier'}’s page takes ${max} lines at a time; this order has ${lines.length}. Paste it in two goes.` : null
-  const csv = [
-    ['Item number', 'Description', 'Quantity', 'Sold as', `Price of one (${o.currency})`, `Line total (${o.currency})`].map(csvField).join(','),
-    ...lines.map((l) => [l.sku, l.name, l.packs, l.packName, l.unitPrice ?? '', l.lineTotal ?? ''].map(csvField).join(',')),
-  ].join('\r\n')
   const total = num(order.estimatedTotal) ?? 0
   const complete = Boolean(order.totalComplete)
   const subject = `Purchase order ${order.number}`
@@ -87,7 +83,6 @@ export async function orderOutputs(payload: Payload, orderID: ID, options: { req
     lines,
     quickOrder,
     quickOrderWarning,
-    csv,
     email: { to, subject, body, mailto: to ? `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}` : null },
     total,
     totalComplete: complete,

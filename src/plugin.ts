@@ -1,6 +1,6 @@
 import type { Access, CollectionConfig, Config, Plugin } from 'payload'
 
-import { itemsCollection, orderingFields, ordersCollection, suppliersCollection } from './collections.js'
+import { itemsCollection, orderingFields, ordersCollection, settingsCollection, suppliersCollection } from './collections.js'
 import { restockEndpoints } from './endpoints.js'
 import type { ResolvedRestock, RestockPluginOptions } from './types.js'
 
@@ -24,6 +24,7 @@ export const restockPlugin =
       suppliers,
       items: options.slugs?.items ?? 'supplier-items',
       orders: options.slugs?.orders ?? 'purchase-orders',
+      settings: options.slugs?.settings ?? 'restock-settings',
       userSlug,
       read: options.access?.read ?? manage,
       manage,
@@ -37,7 +38,7 @@ export const restockPlugin =
     }
     const ov = options.overrides ?? {}
     const apply = (c: CollectionConfig, f?: (c: CollectionConfig) => CollectionConfig) => (f ? f(c) : c)
-    const added = [apply(itemsCollection(o, useKitting ? (kitting?.items ?? null) : null), ov.items), apply(ordersCollection(o), ov.orders)]
+    const added = [apply(itemsCollection(o, useKitting ? (kitting?.items ?? null) : null), ov.items), apply(ordersCollection(o), ov.orders), apply(settingsCollection(o), ov.settings)]
     const clash = (config.collections ?? []).filter((c) => added.some((a) => a.slug === c.slug)).map((c) => c.slug)
     if (clash.length) throw new Error(`Restock: ${clash.join(', ')} already exist${clash.length > 1 ? '' : 's'} in this config. Give Restock other slugs with its \`slugs\` option.`)
     const collections = (config.collections ?? []).map((c) =>

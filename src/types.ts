@@ -20,7 +20,7 @@ export type RestockPluginOptions = {
    * collection already exists (Kitting adds one), Restock adds its ordering fields to it instead of
    * making a second list, so put Restock after Kitting in `plugins`.
    */
-  slugs?: { suppliers?: string; items?: string; orders?: string }
+  slugs?: { suppliers?: string; items?: string; orders?: string; settings?: string }
   /**
    * Who may do what. `manage` edits suppliers, supplier items and draft orders, and receives.
    * `approve` approves orders and marks them as ordered (default: `manage`). `read` sees them
@@ -39,6 +39,7 @@ export type RestockPluginOptions = {
     suppliers?: (c: CollectionConfig) => CollectionConfig
     items?: (c: CollectionConfig) => CollectionConfig
     orders?: (c: CollectionConfig) => CollectionConfig
+    settings?: (c: CollectionConfig) => CollectionConfig
   }
   /** Admin group for Restock's collections. Default `Restock`, or Kitting's group when Kitting is installed. */
   adminGroup?: string
@@ -48,6 +49,7 @@ export type ResolvedRestock = {
   suppliers: string
   items: string
   orders: string
+  settings: string
   userSlug: string
   read: Access
   manage: Access
