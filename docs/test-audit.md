@@ -95,4 +95,7 @@ Checked by eye: a sample PDF, which looked right (layout, table and totals). Not
 - **Lots:** a lot number, and a use-by unless the supply has a shelf life, are required where lots are tracked. Missing items go to a partial receipt with a note.
 - **Access:** marking delivered by hand, the arrivals list and one-click receipt refuse viewers and another site's staff. The receipt records who confirmed it.
 
-Not rendered in tests: the confirm panel, the Restock overview and Kitting's Today line. They need the full admin; a browser check is planned before release.
+Not rendered in tests: the confirm panel, the Restock overview and Kitting's Today line, which need the full admin. They were checked in a browser on a throwaway platform copy with made-up data, with no console or server errors:
+- the overview's Arrived list and Kitting's Today line;
+- "Yes, I received this package" from the keyboard, which added exactly 2 cases of 500 swabs;
+- on a lot-tracked order, a prefilled form with no one-click button, where Record stayed disabled until a lot number was given and then recorded the lot. Its use-by came from the supply's shelf life.
