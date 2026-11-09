@@ -10,9 +10,14 @@ export function CopyBox({ label, text, rows = 6, help }: { label: string; text: 
     try {
       await navigator.clipboard.writeText(text)
       setStatus('Copied.')
+      return
     } catch {
-      setStatus('Couldn’t copy. Select the text and copy it yourself.')
+      // Some browsers and embedded views block the clipboard API; the older way often still works.
     }
+    const box = document.getElementById(id) as HTMLTextAreaElement | null
+    box?.select()
+    const ok = box ? document.execCommand('copy') : false
+    setStatus(ok ? 'Copied.' : 'Couldn’t copy. The text is selected: press Cmd+C (or Ctrl+C).')
   }
   return (
     <div style={{ marginBottom: 'var(--base)' }}>

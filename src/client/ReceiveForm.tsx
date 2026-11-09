@@ -45,10 +45,15 @@ export function ReceiveForm({ order, lines, apiRoute }: { order: string; lines: 
   }
   if (!lines.length) return <p style={{ margin: 0 }}>Everything on this order has arrived.</p>
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        if (!busy && entered.length && !invalid.length) void save()
+    // Not a <form>: this sits inside Payload's own edit form, and forms can't nest. Enter in a box records it.
+    <div
+      role="group"
+      aria-label="What arrived"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+          e.preventDefault()
+          if (!busy && entered.length && !invalid.length) void save()
+        }
       }}
     >
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
@@ -92,7 +97,7 @@ export function ReceiveForm({ order, lines, apiRoute }: { order: string; lines: 
           })}
         </tbody>
       </table>
-      <button type="submit" className="btn btn--style-primary btn--size-small" style={{ margin: '8px 0 0' }} disabled={busy || !entered.length || invalid.length > 0}>
+      <button type="button" className="btn btn--style-primary btn--size-small" style={{ margin: '8px 0 0' }} disabled={busy || !entered.length || invalid.length > 0} onClick={() => void save()}>
         {busy ? 'Recording…' : 'Record what arrived'}
       </button>
       {result ? (
@@ -100,6 +105,6 @@ export function ReceiveForm({ order, lines, apiRoute }: { order: string; lines: 
           {result.message}
         </p>
       ) : null}
-    </form>
+    </div>
   )
 }

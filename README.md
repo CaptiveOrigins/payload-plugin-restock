@@ -2,7 +2,7 @@
 
 Restock for Payload: supplier lists, purchase orders and receiving, fed by your stock levels, with copy-ready orders for suppliers that have no API.
 
-**Status:** early, 0.1.0 in progress, not on npm. Built so far: suppliers, supplier items, purchase orders with their life cycle, access and site isolation, and drafting orders from stock levels (with Kitting 0.1.0 from npm, or your own needs). 13 tests pass against a real MongoDB (in memory, single-node replica set) on Payload 3.92. Not built yet: the Console API. Nothing has been tried in a browser yet.
+**Status:** early, 0.1.0 in progress, not on npm. Built so far: suppliers, supplier items, purchase orders with their life cycle, access and site isolation, and drafting orders from stock levels (with Kitting 0.1.0 from npm, or your own needs). 13 tests pass against a real MongoDB (in memory, single-node replica set) on Payload 3.92. Not built yet: the Console API. On 2026-11-09 the order page was opened in a local dev server of the Captive Origins platform with made-up data, and no server errors were logged. The place-this-order panel showed quick-order lines, the CSV and email buttons, and links. The receive form recorded 2 packs with a lot number from the keyboard alone, and the stock and lot appeared in Kitting. Not checked yet: a screen reader, or copying to the clipboard in a normal browser (the in-app browser used blocks it, and the button says so).
 
 Restock never buys anything and never stores passwords or card numbers. It drafts; a person checks, approves and places the order.
 

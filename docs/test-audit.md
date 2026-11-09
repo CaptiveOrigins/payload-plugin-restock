@@ -55,3 +55,7 @@ The order page's panel hasn't been opened in a browser yet. That's planned with 
 - **Receiving without Kitting:** `POST /api/restock/receive` refuses people who are signed out, viewers, and another site's staff. It refuses part packs, and records who received it and a note.
 
 Kitting's `restockNeeds` is tested in Kitting itself (its PR #2). Restock's tests still use Kitting 0.1.0's below-level fallback until 0.2.0 is on npm.
+
+## 2026-11-09, browser check of the order page
+
+In a local dev server of the platform with Restock installed temporarily and made-up data. **Found and fixed:** the receive form was a `<form>` inside Payload's own edit form. That's invalid HTML: it caused a hydration error, and pressing Enter could have submitted Payload's form instead of recording the receipt. It's now a group with its own button and Enter handling. After the fix: no hydration error, and receiving 2 packs with a lot from the keyboard recorded the stock and lot in Kitting. Also: order lines show read-only once past the draft, and Copy falls back to the older copy command where the clipboard API is blocked. Rendering the panel isn't covered by unit tests (it needs the full admin), as for Kitting's pages.

@@ -280,6 +280,8 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
         name: 'lines',
         type: 'array',
         label: 'Lines',
+        // Shown read-only once the order is past its draft (the hook also refuses changes).
+        access: { update: ({ doc }) => !doc || doc.status === 'draft' },
         labels: { singular: 'Line', plural: 'Lines' },
         fields: [
           {
