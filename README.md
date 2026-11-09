@@ -71,8 +71,11 @@ export default buildConfig({
 
 ## Commands
 
+`npm run dev` starts a small local app with Restock and Kitting on a throwaway in-memory database, filled with made-up suppliers and supplies. It signs you in as made-up staff, listens on this computer only, and deletes everything when you press Ctrl+C. Nothing is ever sent: emails are written to the terminal.
+
 ```bash
 npm install
+npm run dev          # try it: http://127.0.0.1:3200/admin/restock, made-up data, deleted on Ctrl+C
 npm test            # Vitest with an in-memory MongoDB replica set
 npm run typecheck
 npm run build

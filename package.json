@@ -46,6 +46,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "dev": "npm run build && node dev/start.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "leak-check": "bash scripts/leak-check.sh",

@@ -7,3 +7,10 @@ node_modules/
 .build/
 .gradle/
 *.tgz
+
+# Local try-out app (npm run dev)
+dev/.next/
+dev/next-env.d.ts
+dev/app/(payload)/admin/importMap.js
+dev/AGENTS.md
+dev/CLAUDE.md
