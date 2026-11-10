@@ -32,7 +32,7 @@ beforeAll(async () => {
       plugins: [
         kittingPlugin({
           scopeField: 'tenant',
-          overrides: { items: withTenant, suppliers: withTenant, movements: withTenant, recipes: withTenant, lots: withTenant, units: withTenant, requests: withTenant, boxes: withTenant, postage: withTenant },
+          overrides: { items: withTenant, suppliers: withTenant, movements: withTenant, recipes: withTenant, lots: withTenant, units: withTenant, requests: withTenant, boxes: withTenant, postage: withTenant, settings: withTenant },
         }),
         restockPlugin({
           overrides: { items: withTenant, orders: withTenant, settings: withTenant },
@@ -64,6 +64,7 @@ describe('with Kitting', () => {
   })
 
   it('drafts one order per supplier from what’s below level, in whole packs and minimums, minus what’s on order', async () => {
+    expect(typeof (await import('@captiveorigins/payload-plugin-kitting')).restockNeeds).toBe('function') // the 0.2+ path
     const lab = await create('suppliers', { tenant: site.id, name: 'Example Lab Supply' })
     const pack = await create('suppliers', { tenant: site.id, name: 'Example Packaging' })
     // Swabs: 40 on hand, level 100, reorder 500 → 500 needed; packs of 200, so 3 packs.

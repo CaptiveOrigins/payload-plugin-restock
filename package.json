@@ -65,7 +65,7 @@
     }
   },
   "devDependencies": {
-    "@captiveorigins/payload-plugin-kitting": "0.1.0",
+    "@captiveorigins/payload-plugin-kitting": "0.2.0",
     "@payloadcms/db-mongodb": "3.92.1",
     "@payloadcms/next": "3.92.1",
     "@payloadcms/ui": "3.92.1",

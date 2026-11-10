@@ -116,3 +116,15 @@ Not rendered in tests: the confirm panel, the Restock overview and Kitting's Tod
 
 - **Drafting with Kitting 0.2's `restockNeeds`.** CI tests against Kitting 0.1.0 from npm, which covers the fallback. The 0.2 path is tested on Kitting's side (`restockNeeds`), and Restock's call to it should get a test here once 0.2.0 is on npm. On the lead's list.
 - **The license and release files:** nothing to test; the Release workflow checks the tag and the description itself.
+
+## 2026-11-10, Kitting 0.2.0 on npm
+
+Kitting 0.2.0 is on npm, so the gap left open above is closed.
+
+### Gap added (1 test, 1 assertion, 1 setup fix)
+
+- **Drafting with Kitting 0.2's `restockNeeds`.** The dev copy of Kitting is now 0.2.0. The drafting test asserts `restockNeeds` is there, so it can't quietly fall back.
+- **The 0.1 fallback stays covered.** `test/kitting-0.1.test.ts` hides `restockNeeds` from the installed Kitting and checks that drafting from the stock report still gives whole packs, for one site only, with unmatched needs listed.
+- **Setup fix, found by this test:** the test site didn't scope Kitting 0.2's new `kitting-settings` collection, and drafting failed with "the following path cannot be queried: tenant". Kitting's upgrade note already says to scope it. A site that skips the note gets the same unclear error, so a plainer check belongs in Kitting (on its list).
+
+23 tests pass. Nothing skipped.
