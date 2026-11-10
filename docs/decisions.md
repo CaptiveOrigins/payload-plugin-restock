@@ -55,3 +55,18 @@ Restock is a general Payload plugin, so it's licensed MIT like the others (`~/Co
 - Added the standard `release.yml` (stage on npm by trusted publishing; the owner approves with 2FA) and `RELEASING.md`, copied from Kitting.
 - Kitting is an optional peer from `>=0.1.0`, not `>=0.2.0`. The tests run against Kitting 0.1.0 from npm, and drafting falls back to its below-level list when `restockNeeds` (0.2) isn't there. Kitting 0.2 adds `restockNeeds` and the arrivals on its Today line.
 - The first-public-push audit is in `docs/first-public-push-audit.md`.
+
+## 2026-11-10: decision feed acknowledged (ops/decisions/all.md, captive-origins.md)
+
+Settled decisions from the owner, through Helm's feed. The feed holds the owner's exact words.
+
+- **D1** Settled decisions arrive through the feed and are acted on, not re-argued.
+- **D2** Build it right: agnostic plugins with optional adapters, best architecture first. This repo imports no other Captive Origins plugin.
+- **D3** Owner steps and tests go to `~/Code/ops/inbox/` per `ops/rules/owner-items.md`, never straight to needs-you.md or tests.md.
+- **D4** Priority: Docker media, Minecraft server, then all Captive Origins.
+- **D5** No private repos to save CI minutes. This repo is public, with the Actions-minutes rules.
+- **D6, D21** Plugin names need the owner's OK before work starts (ops/plugin-names.md). Restock predates the review and is on npm; it isn't in the Approved table.
+- **D7** No launch dates: work follows the priority list in ops/timeline-captive-origins.md. A freeze point is cut only when the owner says so.
+- **D8** Seed World hears about every collection-structure change ahead of time, with versions, and audits when it lands.
+- **D12** No plugin-family tags yet. None are in `package.json` keywords.
+- Not for this repo: D9 (PM doc), D10 (tour before studbook), D11 (kids decide on guardian suggestions), D14 (plan B), D15 (Husbandry.Pro link), D16 (both views).
