@@ -99,3 +99,20 @@ Not rendered in tests: the confirm panel, the Restock overview and Kitting's Tod
 - the overview's Arrived list and Kitting's Today line;
 - "Yes, I received this package" from the keyboard, which added exactly 2 cases of 500 swabs;
 - on a lot-tracked order, a prefilled form with no one-click button, where Record stayed disabled until a lot number was given and then recorded the lot. Its use-by came from the supply's shelf life.
+
+## 2026-11-10, after the MIT prep and the try-out app
+
+22 tests. Since the last audit: the license and release files, Kitting as an optional peer from 0.1.0, and the local try-out app (`npm run dev`).
+
+### Gap added (2 tests, 1 fix)
+
+- **The try-out app's database guard.** The app signs anyone in, so it must refuse any database except the throwaway one `npm run dev` starts. The old check only looked at how the URL began, so `mongodb://127.0.0.1:x@example.com/` passed: that's a user name and password for another host. A second host after a comma passed too. It's now `isThrowawayDatabase` (`dev/local-only.ts`), a strict match: one MongoDB on 127.0.0.1, a port, a name and plain options. Tested against the URL the app really gets and ten that must be refused. It never shipped in the npm package (`files` is `dist` only), and it was only ever run against its own throwaway database.
+
+### Checked by hand
+
+`npm run dev` after the fix: the made-up data loaded, `/admin/restock` answered 200, and Ctrl+C deleted the database.
+
+### Skipped, and why
+
+- **Drafting with Kitting 0.2's `restockNeeds`.** CI tests against Kitting 0.1.0 from npm, which covers the fallback. The 0.2 path is tested on Kitting's side (`restockNeeds`), and Restock's call to it should get a test here once 0.2.0 is on npm. On the lead's list.
+- **The license and release files:** nothing to test; the Release workflow checks the tag and the description itself.

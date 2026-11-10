@@ -5,6 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildConfig } from 'payload'
 
+import { isThrowawayDatabase } from './local-only'
 import { seed, TRY_EMAIL } from './seed'
 
 /**
@@ -14,7 +15,7 @@ import { seed, TRY_EMAIL } from './seed'
  */
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const url = process.env.TRY_DATABASE_URI
-if (!url || !/^mongodb:\/\/127\.0\.0\.1:/.test(url)) throw new Error('Start this with `npm run dev`: it only runs on its own throwaway database.')
+if (!isThrowawayDatabase(url)) throw new Error('Start this with `npm run dev`: it only runs on its own throwaway database.')
 
 export default buildConfig({
   secret: process.env.TRY_SECRET ?? 'local-try-out-only',
