@@ -50,6 +50,18 @@ Restock never buys anything and never stores passwords or card numbers. It draft
 - **Restock settings** (`restock-settings`, one per site): the organization name, ship-to and bill-to addresses, a contact, the paper size, and terms printed at the foot of every order.
 - **Access:** `manage` drafts and receives, `approve` approves and marks orders as ordered, and `read` sees them. With `scopeField`, everything stays inside one site. An order can't use another supplier's items, and nothing links across sites.
 
+## On its own, and with others
+
+**On its own:** Restock needs only Payload. It makes its own suppliers list, and drafts orders from a `needs` function you give it. Receiving then moves the order along and keeps its history, but adds stock nowhere, since there's no stock to add to. Run `payload generate:importmap` for the order page.
+
+**Works with:**
+- **Kitting:** with Kitting before it in `plugins`, Restock adds its fields to Kitting's suppliers, drafts from Kitting's `restockNeeds`, and receives into Kitting's stock log, lots and alerts. It finds Kitting through `config.custom.kitting`, and the contract is in [docs/contracts/kitting-restock.md](docs/contracts/kitting-restock.md).
+- **Labels** (designed, not built): Labels plans a receiving label for each received order, offered through `config.custom.labels.providers`.
+
+Carrier tracking comes from your own code through `tracking.track` and `markDelivered` ([docs/contracts/restock-tracking.md](docs/contracts/restock-tracking.md)), not from another plugin.
+
+**Family:** Restock sits in the Fulfillment family, with Kitting, Sample Kits, Shipping, Scan, Labels, Wizards, Custody and Sequences, though the families are a working draft and Fulfillment is due to be split into different groups.
+
 ## Install
 
 Run `payload generate:importmap` after adding it: the order page has a component.
