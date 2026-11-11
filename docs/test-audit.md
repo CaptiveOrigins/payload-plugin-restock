@@ -128,3 +128,32 @@ Kitting 0.2.0 is on npm, so the gap left open above is closed.
 - **Setup fix, found by this test:** the test site didn't scope Kitting 0.2's new `kitting-settings` collection, and drafting failed with "the following path cannot be queried: tenant". Kitting's upgrade note already says to scope it. A site that skips the note gets the same unclear error, so a plainer check belongs in Kitting (on its list).
 
 23 tests pass. Nothing skipped.
+
+## 2026-11-10, fortnightly pass
+
+No code has changed since the last audit: only the README's npm line and the decision feed (D1 to D16, D21). This pass maps the decisions to the tests.
+
+### Covered
+
+| Promise | Tests |
+|---|---|
+| It never buys anything; the Console's cart API changes only its own status, with history, and refuses signed-out people and other sites | the Console's cart API (step 5) |
+| Each works alone: Restock drafts from the host's own needs without Kitting, and from Kitting 0.1's stock report without `restockNeeds` | without Kitting (step 2); `test/kitting-0.1.test.ts` |
+| One supplier list shared with Kitting | with Kitting (step 2) |
+| Status by hand only draft ↔ approved → ordered; approving and ordering need `approve`; receiving and the cart status only through Restock | life cycle (step 1); step 4; step 5 |
+
+### Gap added (1 test)
+
+- **Works without Kitting, at the package level** (D2, "each works alone"). The tests above run with Kitting installed, so a static import of it would pass them and still crash a host without it. Now a test checks that `package.json` has no Captive Origins dependency, that Kitting is an optional peer, and that the only reference to it in `src` is the guarded `await import(...).catch(() => null)` in `draft.ts`.
+
+24 tests.
+
+### For the lead
+
+- **D2's wording in `docs/decisions.md`:** "This repo imports no other Captive Origins plugin" isn't quite true. It imports Kitting as an optional adapter, which D2 allows. The new test pins what's true; the line could say "imports no other Captive Origins plugin except Kitting, optionally".
+
+### Skipped, and why
+
+- **"Never stores vendor credentials":** no collection has a field for one, and a test matching field names would prove little. A review question for any new supplier field, not a test.
+- **D12, no plugin-family tags:** one keyword list in `package.json`, read at review. A test would be overkill.
+- **The README's npm line and the other decisions:** process, not behavior.
