@@ -1,6 +1,6 @@
 {
   "name": "@captiveorigins/payload-plugin-restock",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Restock for Payload: supplier lists, purchase orders and receiving, fed by your stock levels, with copy-ready orders for suppliers that have no API.",
   "homepage": "https://github.com/CaptiveOrigins/payload-plugin-restock#readme",
   "bugs": {
