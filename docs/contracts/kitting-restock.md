@@ -51,6 +51,22 @@ payload.create({ collection: <kitting movements slug>, data: {
 
 The supply's packs must include the supplier's pack name. Otherwise Restock converts to the supply's unit itself, using the supplier item's pack size, and sends that.
 
+## Restock → Kitting: arrivals waiting to be confirmed
+
+Restock puts a function on `payload.config.custom.restock`, and Kitting's `restockArrivals` calls it for the Today line:
+
+```ts
+arrived({ payload, user?, scope? }): Promise<{
+  id: ID
+  number: string
+  supplier: string             // the supplier's name
+  deliveredAt: string | null   // the latest delivered parcel
+  scope: ID | null             // the order's site (its scopeField value); null without a scopeField (added 2026-11-11)
+}[]>
+```
+
+With `user`, only orders that person may receive. Kitting shows the whole list to someone whose `manage` answers exactly `true`. For a query that only names sites (the scope field with `equals` or `in`, alone or under `and`/`or`), it keeps the orders whose `scope` is one of them. For any other answer, a query it can't read that way included, it shows nothing and doesn't call `arrived`. An order without a `scope`, from an older Restock, is never shown to site-limited staff.
+
 ## Linking
 
 A Restock supplier item has an optional `kittingItem` relationship to Kitting's supplies collection, added only when Kitting is installed. A supply can have several supplier items, one per supplier.

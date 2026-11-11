@@ -39,7 +39,7 @@ export const restockPlugin =
       track: options.tracking?.track,
       notify: options.notify,
       arrived: async ({ payload, user, scope }) =>
-        (await awaitingConfirmation(payload, { user, scope })).map((x: Arrived) => ({ id: x.id, number: x.number, supplier: x.supplier, deliveredAt: x.deliveredAt })),
+        (await awaitingConfirmation(payload, { user, scope })).map((x: Arrived) => ({ id: x.id, number: x.number, supplier: x.supplier, deliveredAt: x.deliveredAt, scope: x.scope })),
     }
     const ov = options.overrides ?? {}
     const apply = (c: CollectionConfig, f?: (c: CollectionConfig) => CollectionConfig) => (f ? f(c) : c)

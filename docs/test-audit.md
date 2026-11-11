@@ -168,3 +168,11 @@ Suite: 24 tests before, 26 after (`npx vitest run`). From an access sweep.
 - **Also found.** `allows` wasn't in the sweep's findings (only the view was), but it's the gate every endpoint uses and had the same flaw, so it's fixed here: before the fix, `manage` answering `1` let a person receive an order.
 - **Skipped.** The view is checked through which reads it makes, not rendered in a real admin.
 
+## 2026-11-11, `arrived` returns each order's site
+
+Suite: 26 tests before, 26 after (`npx vitest run`), 1 extended. For Kitting's arrivals line (crossing `kitting-restock`).
+
+- **The change.** `config.custom.restock.arrived` now returns `scope` with each order: the site's ID from `scopeField`, or `null` without one. `awaitingConfirmation` already worked it out; `arrived` dropped it. The other fields are as before.
+- **Tests.** In `kitting.test.ts`, "tracks shipments…": the shared `arrived` returns the delivered order with its id, number, supplier, delivery time and its site's ID (not the populated site document).
+- **Mutation checks.** 2 mutations, each a Python string replace restored byte for byte (SHA-256 checked). Both fail the suite: `scope` left out of `arrived`, and the populated site document returned instead of its ID.
+- **Skipped.** `scope: null` without a `scopeField`: every database suite here runs with a site field, and the `null` branch is the same line `awaitingConfirmation` has used since 0.1. Kitting's side, the filtering, is tested in Kitting.

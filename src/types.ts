@@ -82,6 +82,10 @@ export type ResolvedRestock = {
   sharedSuppliers: boolean
   track?: TrackShipment
   notify?: RestockPluginOptions['notify']
-  /** For other plugins (Kitting's overview): orders whose parcels arrived and wait for a person to confirm. */
-  arrived?: (args: { payload: Payload; user?: unknown; scope?: ID | null }) => Promise<{ id: ID; number: string; supplier: string; deliveredAt: string | null }[]>
+  /**
+   * For other plugins (Kitting's overview): orders whose parcels arrived and wait for a person to confirm. `scope` is
+   * each order's site (the value of `scopeField`), or `null` when Restock runs without one, so a caller can keep only
+   * the sites a person may manage.
+   */
+  arrived?: (args: { payload: Payload; user?: unknown; scope?: ID | null }) => Promise<{ id: ID; number: string; supplier: string; deliveredAt: string | null; scope: ID | null }[]>
 }

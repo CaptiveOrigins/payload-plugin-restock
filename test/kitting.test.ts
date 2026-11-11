@@ -176,6 +176,12 @@ describe('arrived, please confirm', () => {
     expect(mail.filter((m) => m.subject === `Arrived, please confirm: ${po.number}`)).toHaveLength(1) // once
     expect((await awaitingConfirmation(payload, { scope: site.id })).map((a) => a.number)).toContain(po.number)
     expect((await awaitingConfirmation(payload, { scope: other.id })).map((a) => a.number)).not.toContain(po.number)
+    // What other plugins get (Kitting's Today line): each order with its site, so they can keep only the sites a person manages.
+    const arrived = (payload.config.custom!.restock as { arrived: (args: { payload: typeof payload; scope?: unknown }) => Promise<Doc[]> }).arrived
+    const shared = (await arrived({ payload, scope: site.id })).find((a) => a.number === po.number)
+    expect(shared).toMatchObject({ id: po.id, number: po.number, supplier: expect.any(String), deliveredAt: expect.any(String) })
+    expect(String(shared!.scope)).toBe(String(site.id))
+    expect(typeof shared!.scope).not.toBe('object') // the site's ID, not the site document
 
     // "Received in full": exactly what's still to come, once.
     const r = await receiveInFull(payload, po.id)
