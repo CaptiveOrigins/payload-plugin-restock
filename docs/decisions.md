@@ -61,7 +61,7 @@ Restock is a general Payload plugin, so it's licensed MIT like the others (`~/Co
 Settled decisions from the owner, through Helm's feed. The feed holds the owner's exact words.
 
 - **D1** Settled decisions arrive through the feed and are acted on, not re-argued.
-- **D2** Build it right: agnostic plugins with optional adapters, best architecture first. This repo imports no other Captive Origins plugin.
+- **D2** Build it right: agnostic plugins with optional adapters, best architecture first. This repo depends on no other Captive Origins plugin: Kitting is an optional peer, reached only through a guarded dynamic import in `draft.ts`, and Restock runs without it (tested).
 - **D3** Owner steps and tests go to `~/Code/ops/inbox/` per `ops/rules/owner-items.md`, never straight to needs-you.md or tests.md.
 - **D4** Priority: Docker media, Minecraft server, then all Captive Origins.
 - **D5** No private repos to save CI minutes. This repo is public, with the Actions-minutes rules.
