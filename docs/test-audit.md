@@ -157,3 +157,14 @@ No code has changed since the last audit: only the README's npm line and the dec
 - **"Never stores vendor credentials":** no collection has a field for one, and a test matching field names would prove little. A review question for any new supplier field, not a test.
 - **D12, no plugin-family tags:** one keyword list in `package.json`, read at review. A test would be overkill.
 - **The README's npm line and the other decisions:** process, not behavior.
+
+## 2026-11-11, only an exact `true` or a query that is applied
+
+Suite: 24 tests before, 26 after (`npx vitest run`). From an access sweep.
+
+- **The change.** `src/access.ts`: `isWhere` (a well-formed, non-empty query of `and`/`or` lists and known operators), `trueOrWhere` (exactly `true`, such a query, or no; a throw is no) and `mayUse`. `allows` (every endpoint, approving in the collection hook, the place-this-order panel and the arrivals list) took any truthy answer as a query, and Payload matched `1` against the order, so a `manage` answering `1` let someone receive; a throw was a 500, and a query on a missing field a 500 too. Now only `true` or a well-formed query counts, the query must match the order, and anything else, an unrunnable query included, is a 403. The `/admin/restock` page read `read` and `manage` as truthy; it now uses `mayUse` (its reads don't override access, so a query is applied by Payload).
+- **Tests.** In `restock.test.ts`, "refuses a truthy non-true answer…": `allows` refuses `1`, `'yes'`, `{}`, `{ tenant: false }`, an unknown field, a throw and a rejection; a query for another site is no, one for the order's site and `true` are yes; the export endpoint answers 403 for each refusal and 200 for `true`. In `view.test.ts` (Payload's admin shell stubbed, a made-up Payload that reads nothing): the page reads orders only for `true` or a query from `read`, suppliers only for `true` or a query from `manage`, and nothing when signed out.
+- **Mutation checks.** 8 mutations, each a Python string replace restored byte for byte (SHA-256 checked). All 8 fail the suite: `isWhere` taking any object; `trueOrWhere` rethrowing and passing truthy answers; the old truthy `allows`; the query not applied to the order; the unrunnable-query catch removed; the old truthy `read` and `manage` in the view.
+- **Also found.** `allows` wasn't in the sweep's findings (only the view was), but it's the gate every endpoint uses and had the same flaw, so it's fixed here: before the fix, `manage` answering `1` let a person receive an order.
+- **Skipped.** The view is checked through which reads it makes, not rendered in a real admin.
+

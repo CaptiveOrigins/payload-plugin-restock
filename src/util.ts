@@ -1,5 +1,6 @@
-import { APIError, type Access, type CollectionSlug, type Payload, type PayloadRequest, type Where } from 'payload'
+import { APIError, type Access, type CollectionSlug, type Payload, type PayloadRequest } from 'payload'
 
+import { trueOrWhere } from './access.js'
 import type { ID, ResolvedRestock } from './types.js'
 
 export type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -60,11 +61,18 @@ export async function asInternal<T>(req: Req, fn: () => Promise<T>): Promise<T> 
 
 /** Does this access function allow the person this document? A query result must match it. */
 export async function allows(req: PayloadRequest, access: Access, collection: string, id: ID): Promise<boolean> {
-  const result = await access({ req } as never)
+  // Exactly `true`, or a well-formed query that must match this document. Any other truthy answer, an empty or
+  // malformed query (Payload would skip it and match everything), and a thrown error are a no.
+  const result = await trueOrWhere(() => access({ req } as never))
   if (result === true) return true
-  if (!result) return false
-  const found = await req.payload.count({ collection: collection as CollectionSlug, where: { and: [{ id: { equals: id } }, result as Where] }, overrideAccess: true, req })
-  return found.totalDocs > 0
+  if (result === false) return false
+  try {
+    const found = await req.payload.count({ collection: collection as CollectionSlug, where: { and: [{ id: { equals: id } }, result] }, overrideAccess: true, req })
+    return found.totalDocs > 0
+  } catch {
+    // A query Payload can't run here (a field this collection doesn't have, say) is a no, not a 500.
+    return false
+  }
 }
 
 export const scopeOf = (o: ResolvedRestock, doc: Doc | null | undefined): ID | null => (o.scopeField && doc ? idOf(doc[o.scopeField]) : null)

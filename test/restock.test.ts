@@ -4,6 +4,7 @@ import { buildConfig, getPayload, type Access, type CollectionConfig, type Field
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { awaitingConfirmation, draftOrders, orderOutputs, restockPlugin } from '../src/index.js'
+import { allows } from '../src/util.js'
 
 // Made-up suppliers, items, sites and people throughout. No real account numbers or prices.
 type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -349,5 +350,46 @@ describe('arrivals: access', () => {
     const after = await get('purchase-orders', po.id)
     expect(after.history.at(-1)).toMatchObject({ to: 'received', note: 'Received 2 × S-0001. Received in full' })
     expect(String(after.history.at(-1).by)).toBe(String(staffA.id))
+  })
+})
+
+describe('only an exact true, or a query that matches (test audit 2026-11-11)', () => {
+  it('refuses a truthy non-true answer, a malformed or unrunnable query, and a throw; applies a query; never 500s', async () => {
+    const { supplier, mailer } = await supplierWithItems(siteA)
+    const po = await create('purchase-orders', { tenant: siteA.id, supplier: supplier.id, lines: [{ item: mailer.id, packs: 1 }] }, as(staffA))
+    const req = { payload, user: { ...staffA, collection: 'users' } } as never
+    const NOT_TRUE: [string, () => unknown][] = [
+      ['1', () => 1],
+      ["'yes'", () => 'yes'],
+      ['an empty object', () => ({})],
+      ['a malformed query', () => ({ tenant: false })],
+      ['an unrunnable query', () => ({ notAField: { equals: 1 } })],
+      ['a thrown error', () => {
+        throw new Error('roles store down')
+      }],
+      ['a rejected promise', async () => {
+        throw new Error('roles store down')
+      }],
+    ]
+    for (const [what, answer] of NOT_TRUE) expect(await allows(req, answer as never, 'purchase-orders', po.id), what).toBe(false)
+    expect(await allows(req, (() => ({ tenant: { equals: siteB.id } })) as never, 'purchase-orders', po.id)).toBe(false)
+    expect(await allows(req, (() => ({ tenant: { equals: siteA.id } })) as never, 'purchase-orders', po.id)).toBe(true)
+    expect(await allows(req, (() => true) as never, 'purchase-orders', po.id)).toBe(true)
+
+    // Through an endpoint: each refusal is a 403, never a 500.
+    const o = payload.config.custom!.restock as { read: unknown }
+    const read = o.read
+    const exportEndpoint = payload.config.endpoints.find((e) => e.path === '/restock/order/:id/:format')!
+    const exportAs = async () => (await exportEndpoint.handler({ payload, user: { ...staffA, collection: 'users' }, routeParams: { id: po.id, format: 'json' } } as never)) as Response
+    try {
+      for (const [what, answer] of NOT_TRUE) {
+        o.read = answer
+        expect((await exportAs()).status, what).toBe(403)
+      }
+      o.read = () => true
+      expect((await exportAs()).status).toBe(200)
+    } finally {
+      o.read = read
+    }
   })
 })

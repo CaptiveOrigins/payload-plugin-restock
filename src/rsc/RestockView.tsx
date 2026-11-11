@@ -2,6 +2,7 @@ import { DefaultTemplate } from '@payloadcms/next/templates'
 import type { AdminViewServerProps, CollectionSlug } from 'payload'
 import React from 'react'
 
+import { mayUse } from '../access.js'
 import { DraftButton } from '../client/DraftButton.js'
 import { STATUS_LABELS } from '../collections.js'
 import { awaitingConfirmation } from '../tracking.js'
@@ -16,8 +17,9 @@ export async function RestockView({ initPageResult, params, searchParams }: Admi
   const { req, permissions, visibleEntities, locale } = initPageResult
   const o = restockOf(req.payload)
   const admin = req.payload.config.routes.admin
-  const canRead = req.user ? Boolean(await o.read({ req } as never)) : false
-  const canManage = req.user ? Boolean(await o.manage({ req } as never)) : false
+  // `true` or a query (the reads below don't override access, so they apply it); anything else, a throw included, is no.
+  const canRead = req.user ? await mayUse(() => o.read({ req } as never)) : false
+  const canManage = req.user ? await mayUse(() => o.manage({ req } as never)) : false
   const orders = canRead
     ? ((await req.payload.find({ collection: o.orders as CollectionSlug, where: { status: { in: ['draft', 'approved', 'ordered', 'partly-received'] } }, overrideAccess: false, user: req.user, depth: 1, pagination: false, sort: 'updatedAt' })).docs as Doc[])
     : []
