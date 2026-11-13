@@ -7,11 +7,11 @@ import { draftOrders, restockPlugin } from '../src/index.js'
 
 // Kitting 0.1 had no `restockNeeds`; Restock then works from Kitting's stock report. This file hides
 // `restockNeeds` from the installed Kitting to check that path still drafts the same orders.
-vi.mock('@captiveorigins/payload-plugin-kitting', async (original) => {
+vi.mock('@extantape/payload-plugin-kitting', async (original) => {
   const { restockNeeds: _hidden, ...rest } = await original<Record<string, unknown>>()
   return { ...rest, restockNeeds: undefined }
 })
-const { kittingPlugin } = await import('@captiveorigins/payload-plugin-kitting')
+const { kittingPlugin } = await import('@extantape/payload-plugin-kitting')
 
 type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -49,7 +49,7 @@ afterAll(async () => {
 
 describe('with a Kitting that has no restockNeeds (0.1)', () => {
   it('drafts from Kitting’s below-level list, for this site only, in whole packs', async () => {
-    const kitting = await import('@captiveorigins/payload-plugin-kitting')
+    const kitting = await import('@extantape/payload-plugin-kitting')
     expect(typeof kitting.restockNeeds).toBe('undefined')
     const site = await create('tenants', { name: 'Site' })
     const other = await create('tenants', { name: 'Other site' })

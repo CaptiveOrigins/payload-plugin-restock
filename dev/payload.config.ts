@@ -1,5 +1,5 @@
-import { kittingPlugin } from '@captiveorigins/payload-plugin-kitting'
-import { restockPlugin } from '@captiveorigins/payload-plugin-restock'
+import { kittingPlugin } from '@extantape/payload-plugin-kitting'
+import { restockPlugin } from '@extantape/payload-plugin-restock'
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

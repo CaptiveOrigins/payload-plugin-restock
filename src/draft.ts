@@ -27,7 +27,7 @@ export function pickItem(items: Doc[]): Doc | null {
 
 /** What Kitting says to buy: its `restockNeeds` (0.2+), or its below-level list (0.1). */
 export async function kittingNeeds(payload: Payload, req: Req, scope: ID | null): Promise<SupplyNeed[]> {
-  const kitting = (await import('@captiveorigins/payload-plugin-kitting').catch(() => null)) as Record<string, any> | null // eslint-disable-line @typescript-eslint/no-explicit-any
+  const kitting = (await import('@extantape/payload-plugin-kitting').catch(() => null)) as Record<string, any> | null // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!kitting) throw new Error('Restock: Kitting is configured but its package can’t be loaded.')
   if (typeof kitting.restockNeeds === 'function') return kitting.restockNeeds(payload, { scope: scope ?? undefined, req })
   const k = payload.config.custom?.kitting as { scopeField?: string }

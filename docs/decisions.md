@@ -70,3 +70,4 @@ Settled decisions from the owner, through Helm's feed. The feed holds the owner'
 - **D8** Seed World hears about every collection-structure change ahead of time, with versions, and audits when it lands.
 - **D12** No plugin-family tags yet. None are in `package.json` keywords.
 - Not for this repo: D9 (PM doc), D10 (tour before studbook), D11 (kids decide on guardian suggestions), D14 (plan B), D15 (Husbandry.Pro link), D16 (both views).
+- 2026-11-13: moved to the ExtantApe GitHub organization and the `@extantape` npm scope at the same version. EXTANT APE owns its reusable tools and licenses them to the platform. The earlier package name is deprecated with a pointer here, and GitHub redirects the old repository address.

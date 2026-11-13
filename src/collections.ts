@@ -410,7 +410,7 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
       {
         name: 'placeIt',
         type: 'ui',
-        admin: { components: { Field: '@captiveorigins/payload-plugin-restock/rsc#PlaceOrder' }, condition: (_d, _s, { operation }) => operation !== 'create' },
+        admin: { components: { Field: '@extantape/payload-plugin-restock/rsc#PlaceOrder' }, condition: (_d, _s, { operation }) => operation !== 'create' },
       },
       { name: 'notes', type: 'textarea', label: 'Notes' },
     ],

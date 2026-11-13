@@ -71,7 +71,7 @@ Run `payload generate:importmap` after adding it: the order page has a component
 
 
 ```ts
-import { restockPlugin } from '@captiveorigins/payload-plugin-restock'
+import { restockPlugin } from '@extantape/payload-plugin-restock'
 
 export default buildConfig({
   plugins: [

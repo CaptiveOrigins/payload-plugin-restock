@@ -1,6 +1,6 @@
 # Crossing `restock-tracking`
 
-Between Restock (`@captiveorigins/payload-plugin-restock`, led by the Kitting session) and the host app's carrier tracking. In Captive Origins that's the platform's EasyPost tracker webhook, owned by Kits/Platform. Written 2026-11-09, before code.
+Between Restock (`@extantape/payload-plugin-restock`, led by the Kitting session) and the host app's carrier tracking. In Captive Origins that's the platform's EasyPost tracker webhook, owned by Kits/Platform. Written 2026-11-09, before code.
 
 ## Rule
 
@@ -23,7 +23,7 @@ Without `tracking`, staff set a shipment to delivered by hand on the order page.
 ## Host → Restock: delivered
 
 ```ts
-import { markDelivered } from '@captiveorigins/payload-plugin-restock'
+import { markDelivered } from '@extantape/payload-plugin-restock'
 
 await markDelivered(payload, {
   trackerId: 'trk_…',            // or { carrier, trackingNumber }

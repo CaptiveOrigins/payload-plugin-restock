@@ -84,18 +84,18 @@ describe('works without Kitting', () => {
     const { readFile, readdir } = await import('node:fs/promises')
     const root = new URL('../', import.meta.url)
     const pkg = JSON.parse(await readFile(new URL('package.json', root), 'utf8'))
-    const ours = (deps: Record<string, string> = {}) => Object.keys(deps).filter((d) => d.startsWith('@captiveorigins/'))
+    const ours = (deps: Record<string, string> = {}) => Object.keys(deps).filter((d) => d.startsWith('@extantape/'))
     expect(ours(pkg.dependencies)).toEqual([])
-    expect(ours(pkg.peerDependencies)).toEqual(['@captiveorigins/payload-plugin-kitting'])
-    expect(pkg.peerDependenciesMeta['@captiveorigins/payload-plugin-kitting']).toEqual({ optional: true })
+    expect(ours(pkg.peerDependencies)).toEqual(['@extantape/payload-plugin-kitting'])
+    expect(pkg.peerDependenciesMeta['@extantape/payload-plugin-kitting']).toEqual({ optional: true })
     // A static import of Kitting would crash a host that doesn't install it. Restock's own admin paths are fine.
     const files = (await readdir(new URL('src/', root), { recursive: true })).filter((f) => /\.tsx?$/.test(f))
     const uses: string[] = []
     for (const f of files) {
       const text = await readFile(new URL(`src/${f}`, root), 'utf8')
-      for (const m of text.matchAll(/^.*@captiveorigins\/(?!payload-plugin-restock\/).*$/gm)) uses.push(`${f}: ${m[0].trim()}`)
+      for (const line of text.split('\n')) if (/@extantape\/(?!payload-plugin-restock\/)/.test(line)) uses.push(`${f}: ${line.trim()}`)
     }
     expect(uses).toHaveLength(1)
-    expect(uses[0]).toMatch(/^draft\.ts: const kitting = \(await import\('@captiveorigins\/payload-plugin-kitting'\)\.catch\(\(\) => null\)\)/)
+    expect(uses[0]).toMatch(/^draft\.ts: const kitting = \(await import\('@extantape\/payload-plugin-kitting'\)\.catch\(\(\) => null\)\)/)
   })
 })

@@ -59,8 +59,8 @@ export const restockPlugin =
         ...config.admin,
         components: {
           ...config.admin?.components,
-          afterNavLinks: [...(config.admin?.components?.afterNavLinks ?? []), '@captiveorigins/payload-plugin-restock/rsc#RestockNavLink'],
-          views: { ...config.admin?.components?.views, restock: { Component: '@captiveorigins/payload-plugin-restock/rsc#RestockView', path: '/restock', exact: true } },
+          afterNavLinks: [...(config.admin?.components?.afterNavLinks ?? []), '@extantape/payload-plugin-restock/rsc#RestockNavLink'],
+          views: { ...config.admin?.components?.views, restock: { Component: '@extantape/payload-plugin-restock/rsc#RestockView', path: '/restock', exact: true } },
         },
       },
     }

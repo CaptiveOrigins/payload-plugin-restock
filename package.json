@@ -1,10 +1,10 @@
 {
-  "name": "@captiveorigins/payload-plugin-restock",
+  "name": "@extantape/payload-plugin-restock",
   "version": "0.1.2",
   "description": "Restock for Payload: supplier lists, purchase orders and receiving, fed by your stock levels, with copy-ready orders for suppliers that have no API.",
-  "homepage": "https://github.com/CaptiveOrigins/payload-plugin-restock#readme",
+  "homepage": "https://github.com/ExtantApe/payload-plugin-restock#readme",
   "bugs": {
-    "url": "https://github.com/CaptiveOrigins/payload-plugin-restock/issues"
+    "url": "https://github.com/ExtantApe/payload-plugin-restock/issues"
   },
   "keywords": [
     "payload",
@@ -21,7 +21,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CaptiveOrigins/payload-plugin-restock.git"
+    "url": "git+https://github.com/ExtantApe/payload-plugin-restock.git"
   },
   "type": "module",
   "exports": {
@@ -54,18 +54,18 @@
     "prepublishOnly": "npm run typecheck && npm test"
   },
   "peerDependencies": {
-    "@captiveorigins/payload-plugin-kitting": ">=0.1.0",
+    "@extantape/payload-plugin-kitting": ">=0.1.0",
     "@payloadcms/next": "^3.80.0",
     "payload": "^3.80.0",
     "react": ">=19"
   },
   "peerDependenciesMeta": {
-    "@captiveorigins/payload-plugin-kitting": {
+    "@extantape/payload-plugin-kitting": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@captiveorigins/payload-plugin-kitting": "0.2.0",
+    "@extantape/payload-plugin-kitting": "0.2.1",
     "@payloadcms/db-mongodb": "3.92.1",
     "@payloadcms/next": "3.92.1",
     "@payloadcms/ui": "3.92.1",

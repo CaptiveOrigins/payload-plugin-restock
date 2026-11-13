@@ -26,10 +26,10 @@
       "@payload-config": [
         "./payload.config.ts"
       ],
-      "@captiveorigins/payload-plugin-restock": [
+      "@extantape/payload-plugin-restock": [
         "../dist/index.js"
       ],
-      "@captiveorigins/payload-plugin-restock/rsc": [
+      "@extantape/payload-plugin-restock/rsc": [
         "../dist/rsc/index.js"
       ]
     }

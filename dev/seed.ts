@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import type { Payload } from 'payload'
 
-import { markDelivered } from '@captiveorigins/payload-plugin-restock'
+import { markDelivered } from '@extantape/payload-plugin-restock'
 
 /** The try-out's only person. The app signs in as them. */
 export const TRY_EMAIL = 'staff@example.com'
