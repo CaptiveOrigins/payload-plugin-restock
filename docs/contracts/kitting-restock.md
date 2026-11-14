@@ -1,6 +1,6 @@
 # Crossing `kitting-restock`
 
-Between Kitting (`@extantape/payload-plugin-kitting`) and Restock (`@extantape/payload-plugin-restock`). Both plugins are led by the same session, so the contract is written here before code lands on either side (2026-11-09).
+Between Kitting (`@extantape/payload-plugin-kitting`) and Restock (`@extantape/payload-plugin-restock`). The contract is written here before code lands on either side (2026-11-09).
 
 ## Rules
 

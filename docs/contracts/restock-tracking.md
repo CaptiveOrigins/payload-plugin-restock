@@ -1,6 +1,6 @@
 # Crossing `restock-tracking`
 
-Between Restock (`@extantape/payload-plugin-restock`, led by the Kitting session) and the host app's carrier tracking. On the first site that's its EasyPost tracker webhook, owned by Kits/Platform. Written 2026-11-09, before code.
+Between Restock (`@extantape/payload-plugin-restock`) and the host app's carrier tracking. On the first site that's its EasyPost tracker webhook, owned by the site. Written 2026-11-09, before code.
 
 ## Rule
 
@@ -37,7 +37,7 @@ await markDelivered(payload, {
 - **Unknown or another site's tracker:** nothing changes (`not-found` or `wrong-site`).
 - **Writes:** only the shipment's status and time, an order history entry, and the optional staff email ("arrived, please confirm"). Never stock.
 
-## The first site's wiring (Kits/Platform side)
+## The first site's wiring (the site's side)
 
 The existing EasyPost tracker webhook (Kits PR #30) is to:
 1. Create EasyPost trackers for Restock shipments through `tracking.track`.

@@ -2,9 +2,9 @@
 
 Dated decisions for this repo, newest last.
 
-- 2026-11-09: created from the ops starter kit, area `plugins`.
+- 2026-11-09: created from the standard repo starter kit.
 
-## 2026-11-09 (owner, via the director)
+## 2026-11-09 (owner)
 
 - Name: **Restock** (`payload-plugin-restock`, `@extantape/payload-plugin-restock`). It was first drafted as "purchasing".
 - Supply ordering is semi-automatic: the plugin decides what to buy and how much, and a person checks it and makes the purchase. It never buys anything and never stores vendor credentials.
@@ -18,7 +18,7 @@ Dated decisions for this repo, newest last.
 - **One supplier list.** With Kitting (or any app that already has `suppliers`), Restock adds its ordering fields to that collection instead of keeping a second list.
 - **Status changes by hand:** draft ↔ approved → ordered, and cancelled from anything not yet received. Approving and marking as ordered need `approve` access. Receiving and the cart status change only through Restock's own functions.
 - **Order numbers** are PO-0001, PO-0002 and so on per site, after the highest so far, with a unique index per site.
-- **LICENSE:** none while the repo is private (director, 2026-11-09, following the ~/Code rule for private repos). It becomes MIT at the public step, as the brief decides.
+- **LICENSE:** none while the repo is private (2026-11-09, following the rule for private repos). It becomes MIT at the public step.
 
 ## 2026-11-09: what the suppliers' own pages say (read by a session, not checked by the owner)
 
@@ -45,29 +45,20 @@ Read from the suppliers' own pages on 2026-11-09. A session's reading, not legal
 
 ## 2026-11-09 (owner): Tier 2 decided
 
-Ordering stays on **copy/paste and email**. There's no cart automation for ULINE or Zymo, and nothing to ask either supplier. The Console's cart API stays in place: it's harmless, changes nothing but its own status, and is ready if this ever changes. One PDF renderer, with no separate printable HTML view (director, same day).
+Ordering stays on **copy/paste and email**. There's no cart automation for ULINE or Zymo, and nothing to ask either supplier. The Console's cart API stays in place: it's harmless, changes nothing but its own status, and is ready if this ever changes. One PDF renderer, with no separate printable HTML view (same day).
 
-## 2026-11-09 (director): MIT, ready for the public step
+## 2026-11-09: MIT, ready for the public step
 
-Restock is a general Payload plugin, so it's licensed MIT like the others (`~/Code/CLAUDE.md`), now `Copyright (c) 2026 EXTANT APE`. This replaces the "no license while private" entry above. The repo is still private: making it public, the first npm publish and npm trust are the owner's steps.
+Restock is a general Payload plugin, so it's licensed MIT like the others, now `Copyright (c) 2026 EXTANT APE`. This replaces the "no license while private" entry above. The repo is still private: making it public, the first npm publish and npm trust are the owner's steps.
 
 - `LICENSE` is back, `package.json` says `"license": "MIT"`, and the npm package includes `LICENSE`.
 - Added the standard `release.yml` (stage on npm by trusted publishing; the owner approves with 2FA) and `RELEASING.md`, copied from Kitting.
 - Kitting is an optional peer from `>=0.1.0`, not `>=0.2.0`. The tests run against Kitting 0.1.0 from npm, and drafting falls back to its below-level list when `restockNeeds` (0.2) isn't there. Kitting 0.2 adds `restockNeeds` and the arrivals on its Today line.
 - The first-public-push audit is in `docs/first-public-push-audit.md`.
 
-## 2026-11-10: decision feed acknowledged (ops/decisions/all.md and the area feed)
+## 2026-11-10: standing rules from the owner
 
-Settled decisions from the owner, through Helm's feed. The feed holds the owner's exact words.
-
-- **D1** Settled decisions arrive through the feed and are acted on, not re-argued.
-- **D2** Build it right: agnostic plugins with optional adapters, best architecture first. This repo depends on no other plugin from this set: Kitting is an optional peer, reached only through a guarded dynamic import in `draft.ts`, and Restock runs without it (tested).
-- **D3** Owner steps and tests go to `~/Code/ops/inbox/` per `ops/rules/owner-items.md`, never straight to needs-you.md or tests.md.
-- **D4** Priority: Docker media, Minecraft server, then all the site work.
-- **D5** No private repos to save CI minutes. This repo is public, with the Actions-minutes rules.
-- **D6, D21** Plugin names need the owner's OK before work starts (ops/plugin-names.md). Restock predates the review and is on npm; it isn't in the Approved table.
-- **D7** No launch dates: work follows the priority list in the ops timeline. A freeze point is cut only when the owner says so.
-- **D8** Seed World hears about every collection-structure change ahead of time, with versions, and audits when it lands.
-- **D12** No plugin-family tags yet. None are in `package.json` keywords.
-- Not for this repo: D9 (PM doc), D10 (tour before studbook), D11 (kids decide on guardian suggestions), D14 (plan B), D15 (Husbandry.Pro link), D16 (both views).
+- Build it right: agnostic plugins with optional adapters, best architecture first. This repo depends on no other plugin from this set: Kitting is an optional peer, reached only through a guarded dynamic import in `draft.ts`, and Restock runs without it (tested).
+- This repo is public, with limits on CI minutes.
+- No plugin-family tags yet. None are in `package.json` keywords.
 - 2026-11-13: moved to the ExtantApe GitHub organization and the `@extantape` npm scope at the same version. EXTANT APE owns its reusable tools and licenses them to the platform. The earlier package name is deprecated with a pointer here, and GitHub redirects the old repository address.

@@ -13,7 +13,7 @@ All 17 commits on every branch were scanned, not just the latest files.
 | IP addresses, server or database hosts, deploy URLs | none |
 | Phone numbers, street addresses, account or customer numbers | none |
 | Real supplier or account data | none. Test suppliers are made up ("Example Packaging Co", "Example Lab Supply"), and items say "made up". ULINE and Zymo are named in `docs/decisions.md` and one field hint only for their public ordering formats and terms. `H-101` is the example model number from ULINE's public quick-order page. No account, price list or order of theirs is in the repo. |
-| Home paths (`/Users/`), personal names | none. Commit authors use the GitHub noreply address; git's author field holds the full name, which `~/Code/CLAUDE.md` allows |
+| Home folder paths, personal names | none. Commit authors use the GitHub noreply address; git's author field holds the full name, which is allowed |
 | Claude session links in commit text | none |
 | Build output, packed files, `.env`, `.secrets/` | never committed. `dist/`, `*.tgz`, `.env` and `.secrets/` are ignored |
 | Leak check in CI | yes, the first step of `.github/workflows/ci.yml` |
@@ -22,7 +22,7 @@ All 17 commits on every branch were scanned, not just the latest files.
 | README status line | yes: 0.1.0, not on npm, what the 20 tests cover, the browser check on a local copy with made-up data, and what hasn't been checked |
 
 **Worth knowing, not blocking:**
-- `CLAUDE.md` (the ops starter kit) is tracked. It names the private ops repo's paths and scripts but no secrets or people.
+- `CLAUDE.md` (from the starter kit) is tracked. It names private tooling paths and scripts but no secrets or people.
 - `docs/` mentions a console app and the owner's Tier 2 decision. Both describe Restock's own design.
 
 Result: clean. Nothing needed rewriting.
