@@ -372,7 +372,7 @@ export function ordersCollection(o: ResolvedRestock): CollectionConfig {
       { name: 'orderedBy', type: 'relationship', relationTo: o.userSlug as CollectionSlug, label: 'Ordered by', admin: { readOnly: true, position: 'sidebar' } },
       {
         type: 'collapsible',
-        label: 'Cart (Captive Origins Console)',
+        label: 'Cart (console)',
         admin: { initCollapsed: true, condition: (d) => Boolean(d?.cartStatus) },
         fields: [
           {

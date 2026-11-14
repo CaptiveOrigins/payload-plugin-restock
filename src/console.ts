@@ -5,7 +5,7 @@ import type { CartStatus, ID } from './types.js'
 import { asInternal, restockOf, RestockError, sys, transaction, userID, type Doc, type Req } from './util.js'
 
 /**
- * For the Captive Origins Console (Tier 2), or any helper that fills a supplier's cart in a person's
+ * For a console app (Tier 2), or any helper that fills a supplier's cart in a person's
  * own browser: the approved orders waiting to be placed, and one thing it may record, whether it
  * filled the cart. It never changes lines, status or anything else, and Restock never places orders.
  */

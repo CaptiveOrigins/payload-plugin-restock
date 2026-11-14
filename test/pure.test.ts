@@ -80,7 +80,7 @@ describe('CSV cells', () => {
 })
 
 describe('works without Kitting', () => {
-  it('depends on no other Captive Origins package; Kitting is an optional peer, reached only by a guarded dynamic import', async () => {
+  it('depends on no other package from this set; Kitting is an optional peer, reached only by a guarded dynamic import', async () => {
     const { readFile, readdir } = await import('node:fs/promises')
     const root = new URL('../', import.meta.url)
     const pkg = JSON.parse(await readFile(new URL('package.json', root), 'utf8'))

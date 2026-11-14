@@ -18,11 +18,11 @@ All 17 commits on every branch were scanned, not just the latest files.
 | Build output, packed files, `.env`, `.secrets/` | never committed. `dist/`, `*.tgz`, `.env` and `.secrets/` are ignored |
 | Leak check in CI | yes, the first step of `.github/workflows/ci.yml` |
 | Release | `.github/workflows/release.yml` stages on npm by trusted publishing and needs the owner's 2FA approval; no token stored |
-| LICENSE | MIT, "Copyright (c) 2026 Captive Origins", included in the npm package |
+| LICENSE | MIT, now "Copyright (c) 2026 EXTANT APE", included in the npm package |
 | README status line | yes: 0.1.0, not on npm, what the 20 tests cover, the browser check on a local copy with made-up data, and what hasn't been checked |
 
 **Worth knowing, not blocking:**
 - `CLAUDE.md` (the ops starter kit) is tracked. It names the private ops repo's paths and scripts but no secrets or people.
-- `docs/` mentions the Captive Origins Console and the owner's Tier 2 decision. Both describe Restock's own design.
+- `docs/` mentions a console app and the owner's Tier 2 decision. Both describe Restock's own design.
 
 Result: clean. Nothing needed rewriting.

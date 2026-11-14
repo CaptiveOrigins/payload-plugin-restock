@@ -144,13 +144,13 @@ No code has changed since the last audit: only the README's npm line and the dec
 
 ### Gap added (1 test)
 
-- **Works without Kitting, at the package level** (D2, "each works alone"). The tests above run with Kitting installed, so a static import of it would pass them and still crash a host without it. Now a test checks that `package.json` has no Captive Origins dependency, that Kitting is an optional peer, and that the only reference to it in `src` is the guarded `await import(...).catch(() => null)` in `draft.ts`.
+- **Works without Kitting, at the package level** (D2, "each works alone"). The tests above run with Kitting installed, so a static import of it would pass them and still crash a host without it. Now a test checks that `package.json` depends on no other plugin from this set, that Kitting is an optional peer, and that the only reference to it in `src` is the guarded `await import(...).catch(() => null)` in `draft.ts`.
 
 24 tests.
 
 ### For the lead
 
-- **D2's wording in `docs/decisions.md`:** "This repo imports no other Captive Origins plugin" isn't quite true. It imports Kitting as an optional adapter, which D2 allows. The new test pins what's true; the line could say "imports no other Captive Origins plugin except Kitting, optionally".
+- **D2's wording in `docs/decisions.md`:** "This repo imports no other plugin from this set" isn't quite true. It imports Kitting as an optional adapter, which D2 allows. The new test pins what's true; the line could say "imports no other plugin from this set except Kitting, optionally".
 
 ### Skipped, and why
 
